@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 float gravity = 1; // gravitational constatnt
 
 float angular_vel1 = 0; // First angular velocity
@@ -16,33 +18,28 @@ float mass2 = 20;
 float x2 = 0;
 float y2 = 0;
 
+color grey = color(128, 128, 128);
+color black = color(0, 0, 0);
+color blue = color(0, 0, 255);
+color white = color(255, 255, 255);
+color orange = color(250, 143, 2);
+color red = color(255, 0, 0);
+color green = color(0, 255, 0);
+color rodColors[] = {grey, grey, green, blue};
+color bgColors[] = {black, white, black, green};
+color fillColors[] = {blue, orange, red, red};
+
+int state = 0; // ranges from 0 to 
+boolean tracePendulumPath = false;
+boolean tracePendulum = false;
+ArrayList<Float[]> path;
+int pathSize = 32;
+
 void setup()
 {
   size(600, 600);
   strokeWeight(2);
-  fill(0);
-  stroke(0);
-}
-
-// Draw the double pendulum (lines and masses) at the xy position
-void drawDoublePendulum(int x, int y)
-{
-  // This looks backwards, but since the angle in our triangle
-  // is shooting downwards, the x value would be the
-  // opposite and the y value would be the adjacent
-  x1 = x - rod1 * sin(angle1);
-  y1 = y + rod1 * cos(angle1);
-
-  x2 = x1 - rod2 * sin(angle2);
-  y2 = y1 + rod2 * cos(angle2);
-
-  // Draw the first rod and mass
-  line(x, y, x1, y1);
-  ellipse(x1, y1, mass1, mass1);
-
-  // Draw the second rod and mass
-  line(x1, y1, x2, y2);
-  ellipse(x2, y2, mass2, mass2);
+  path = new ArrayList<Float[]>();
 }
 
 // Compound the angular accelerations to the angular velocities
@@ -87,11 +84,68 @@ void stepSimulation()
   for (int i = 0; i < substepCount; i++) {
     subStep(substepCount);
   }
+
+  // Record the path of the pendulum
+  if (tracePendulumPath) {
+    // Since we're appending, the most recent positions should be at the end
+    Float[] xy = {x2, y2 + mass2 / 2};
+    path.add(xy);
+    if (path.size() >= pathSize) {
+      // Shift all elements up. TODO: is there a faster way?
+      path.remove(0);
+    }
+  }
+}
+
+// Draw the double pendulum (lines and masses) at the xy position
+void drawDoublePendulum(int x, int y)
+{
+  // This looks backwards, but since the angle in our triangle
+  // is shooting downwards, the x value would be the
+  // opposite and the y value would be the adjacent
+  x1 = x - rod1 * sin(angle1);
+  y1 = y + rod1 * cos(angle1);
+
+  x2 = x1 - rod2 * sin(angle2);
+  y2 = y1 + rod2 * cos(angle2);
+
+  // Draw the rods
+  stroke(rodColors[state]);
+  line(x, y, x1, y1);
+  line(x1, y1, x2, y2);
+
+  // Draw the masses with no outline
+  noStroke();
+  fill(fillColors[state]);
+  ellipse(x1, y1, mass1, mass1);
+  ellipse(x2, y2, mass2, mass2);
+}
+
+void drawPendulumPath() {
+  strokeWeight(5);
+  for (int i = 1; i < path.size(); i++) {
+    Float[] previous = path.get(i - 1);
+    Float[] current = path.get(i);
+    float opacity = 255 / (path.size() - i);
+    stroke(rodColors[state], opacity);
+    line(previous[0], previous[1], current[0], current[1]);
+  }
+  strokeWeight(2);
+}
+
+void mouseReleased() {
+  if (mouseButton == RIGHT) {
+    // Cycle through the state
+    state = (state + 1) % 4;
+    tracePendulumPath = state == 1;
+    tracePendulum = state == 2;
+  }
 }
 
 void draw()
 {
-  background(255);
+  background(bgColors[state]);
   stepSimulation();
   drawDoublePendulum(300, 100);
+  if (tracePendulumPath) drawPendulumPath();
 }
