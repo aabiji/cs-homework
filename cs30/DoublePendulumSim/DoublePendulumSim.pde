@@ -1,8 +1,76 @@
 // TODO: our liberal use of global variables is questionable
 //       is there any way to improve performance?
-//       is there a better alternative to arr.remove(0);
+class Node {
+     Float[] data;
+     Node next;
+     Node prev;
+     
+     Node()
+     {
+          data = new Float[2];
+          next = null;
+          prev = null;
+     }
+}
 
-import java.util.ArrayList;
+// Custom linked list
+class List {
+   Node head;
+   Node tail;
+   int size;
+   int maxSize;
+   
+   List(int max)
+   {
+        head = new Node();
+        tail = head;
+        maxSize = max;
+        size = 1;
+   }
+   
+   void insertAtEnd(float a, float b)
+   {
+        if (head == null) return;
+
+        boolean headFilled = head.data[0] != null;
+        if (!headFilled) {
+             head.data[0] = a;
+             head.data[1] = b;
+             return;
+        }
+
+        Node n = new Node();
+        n.data[0] = a;
+        n.data[1] = b;
+
+        tail.next = n;
+        n.prev = tail;
+        tail = n;
+        size++;
+   }
+   
+   void add(float a, float b)
+   {
+        insertAtEnd(a, b);
+        if (size >= maxSize)
+            shiftUp();
+   }
+   
+   void shiftUp()
+   {
+         if (head.next == null) return;
+         head.next.prev = null;
+         head = head.next;
+         size --;
+   }
+   
+   void empty()
+   {
+        size = 1;
+        head = new Node();
+        tail = head;
+   }
+}
 
 // Handles simulating the behaviour of a double pendulum
 class DoublePendulum {
@@ -24,31 +92,13 @@ class DoublePendulum {
 
     float gravity = 1.0; // Gravitational constant
 
-    ArrayList<Float[]> prevPositions;
-    ArrayList<Float[]> prevAngles;
+    List prevPositions;
+    List prevAngles;
 
     public DoublePendulum()
     {
-        prevPositions = new ArrayList<Float[]>();
-        prevAngles = new ArrayList<Float[]>();
-    }
-
-    void tracePath(float x, float y) {
-        if (!tracePendulumPath) return;
-        Float[] xy = {x, y};
-        prevPositions.add(xy);
-        if (prevPositions.size() >= 50) {
-            prevPositions.remove(0);
-        }
-    }
-
-    void traceAngles() {
-        if (!tracePendulum) return;
-        Float[] angles = {angle1, angle2};
-        prevAngles.add(angles);
-        if (prevAngles.size() >= 10) {
-            prevAngles.remove(0);
-        }
+        prevPositions = new List(50);
+        prevAngles = new List(10);
     }
 
     // Compound the angular accelerations to the angular velocities
@@ -79,7 +129,7 @@ class DoublePendulum {
         angle2 %= (2 * PI); // Force angle to be between -PI and PI
     }
 
-    void step(boolean tracePendulumPath, int x, int y)
+    void step(boolean shouldTraceAngles, int x, int y)
     {
         // Since we are using numerical methods, our simulation will be
         // prone to errors. There are analytical solutions to the double
@@ -92,7 +142,10 @@ class DoublePendulum {
         for (int i = 0; i < substepCount; i++) {
             subStep(substepCount);
         }
-        traceAngles();
+
+        if (shouldTraceAngles) {
+            prevAngles.add(angle1, angle2);
+        }
     }
 }
 
@@ -111,6 +164,7 @@ DoublePendulum dp = new DoublePendulum();
 int currentBackground = 0; // ranges from 0 to 3
 boolean tracePendulumPath = false;
 boolean tracePendulum = false;
+boolean paused = false;
 
 int originX = 300;
 int originY = 100;
@@ -124,12 +178,12 @@ void setup()
 void drawPendulumPath(DoublePendulum dp)
 {
     // Draw a fading trail of lines
-    for (int i = 1; i < dp.prevPositions.size(); i++) {
-        Float[] previous = dp.prevPositions.get(i - 1);
-        Float[] current = dp.prevPositions.get(i);
-        float opacity = 255 / (dp.prevPositions.size() - i);
+    int i = 0;
+    for (Node n = dp.prevPositions.head.next; n != null; n = n.next) {
+        float opacity = 255 / (dp.prevPositions.size - i);
         stroke(rodColors[currentBackground], opacity);
-        line(previous[0], previous[1], current[0], current[1]);
+        line(n.prev.data[0], n.prev.data[1], n.data[0], n.data[1]);
+        i++;
     }
 }
 
@@ -143,7 +197,9 @@ void drawDoublePendulum(DoublePendulum dp, float angle1, float angle2, float opa
     float y1 = originY + dp.rod1 * cos(angle1);
     float x2 = x1 - dp.rod2 * sin(angle2);
     float y2 = y1 + dp.rod2 * cos(angle2);
-    dp.tracePath(x2, y2 + dp.mass2 / 2);
+    if (tracePendulumPath) {
+        dp.prevPositions.add(x2, y2 + dp.mass2 / 2); 
+    }
 
     // Draw the rods
     stroke(rodColors[currentBackground], opacity);
@@ -168,10 +224,11 @@ void drawDoublePendulumMotion(DoublePendulum dp, int x, int y)
     }
 
     // Draw a fading trail of pendulums
-    for (int i = 0; i < dp.prevAngles.size(); i++) {
-        Float[] angles = dp.prevAngles.get(i);
-        float opacity = 255 / (dp.prevAngles.size() - i);
-        drawDoublePendulum(dp, angles[0], angles[1], opacity);
+    int i = 0;
+    for (Node n = dp.prevAngles.head; n != null; n = n.next) {
+        float opacity = 255 / (dp.prevAngles.size - i);
+        drawDoublePendulum(dp, n.data[0], n.data[1], opacity);
+        i ++;
     }
 }
 
@@ -180,15 +237,25 @@ void mouseReleased()
     // Cycle through the program state on right click
     if (mouseButton == RIGHT) {
         currentBackground = (currentBackground + 1) % 4;
-        if (currentBackground != 1) dp.prevPositions.clear();
         tracePendulumPath = currentBackground == 1;
         tracePendulum = currentBackground == 2;
+        if (!tracePendulum) dp.prevAngles.empty();
+        if (!tracePendulumPath) dp.prevPositions.empty();
     }
+}
+
+void keyReleased()
+{
+    // Toggle pause
+    if (key == ' ')
+        paused = !paused;
 }
 
 void draw()
 {
-    background(bgColors[currentBackground]);
-    dp.step(tracePendulumPath, originX, originY);
-    drawDoublePendulumMotion(dp, originX, originY);
+    if (!paused) {
+        background(bgColors[currentBackground]);
+        dp.step(tracePendulum, originX, originY);
+        drawDoublePendulumMotion(dp, originX, originY);
+    }
 }
