@@ -1,16 +1,14 @@
-// TODO: our liberal use of global variables is questionable
-//       is there any way to improve performance?
 class Node {
-     Float[] data;
-     Node next;
-     Node prev;
-     
-     Node()
-     {
-          data = new Float[2];
-          next = null;
-          prev = null;
-     }
+    Float[] data;
+    Node next;
+    Node prev;
+
+    Node()
+    {
+       data = new Float[2];
+       next = null;
+       prev = null;
+    }
 }
 
 // Custom linked list
@@ -19,7 +17,7 @@ class List {
    Node tail;
    int size;
    int maxSize;
-   
+
    List(int max)
    {
         head = new Node();
@@ -27,16 +25,16 @@ class List {
         maxSize = max;
         size = 1;
    }
-   
+
    void insertAtEnd(float a, float b)
    {
         if (head == null) return;
 
         boolean headFilled = head.data[0] != null;
         if (!headFilled) {
-             head.data[0] = a;
-             head.data[1] = b;
-             return;
+            head.data[0] = a;
+            head.data[1] = b;
+            return;
         }
 
         Node n = new Node();
@@ -48,22 +46,22 @@ class List {
         tail = n;
         size++;
    }
-   
+
    void add(float a, float b)
    {
         insertAtEnd(a, b);
         if (size >= maxSize)
             shiftUp();
    }
-   
+
    void shiftUp()
    {
-         if (head.next == null) return;
-         head.next.prev = null;
-         head = head.next;
-         size --;
+        if (head.next == null) return;
+        head.next.prev = null;
+        head = head.next;
+        size --;
    }
-   
+
    void empty()
    {
         size = 1;
@@ -75,29 +73,27 @@ class List {
 // Handles simulating the behaviour of a double pendulum
 class DoublePendulum {
     // First pendulum
-    float x1, y1;
     float angular_vel1 = 0.0; // Angular velocity
     float angular_acc1 = 0.0; // Angular acceleration
     float angle1 = PI/4;  // Angle of the rod from the origin
-    float rod1 = 100; // Length of the rod 
-    float mass1 = 20; // Weight of the mass 
+    float rod1; // Length of the rod
+    float mass1; // Weight of the mass
 
     // Second pendulum
-    float x2, y2;
     float angular_vel2 = 0;
     float angular_acc2 = 0;
     float angle2 = PI/8;
-    float rod2 = 100;
-    float mass2 = 20;
+    float rod2;
+    float mass2;
 
-    float gravity = 1.0; // Gravitational constant
+    float gravity; // Gravitational constant
 
     List prevPositions;
     List prevAngles;
 
     public DoublePendulum()
     {
-        prevPositions = new List(50);
+        prevPositions = new List(65);
         prevAngles = new List(10);
     }
 
@@ -129,7 +125,7 @@ class DoublePendulum {
         angle2 %= (2 * PI); // Force angle to be between -PI and PI
     }
 
-    void step(boolean shouldTraceAngles, int x, int y)
+    void step(boolean shouldTraceAngles)
     {
         // Since we are using numerical methods, our simulation will be
         // prone to errors. There are analytical solutions to the double
@@ -149,6 +145,57 @@ class DoublePendulum {
     }
 }
 
+// Slider UI component
+class Slider {
+    int x, y;
+    int width;
+    int rangeStart, rangeEnd;
+    int value;
+    String name;
+
+    Slider(String id, int initial, int xpos, int ypos, int dragWidth, int start, int end)
+    {
+        x = xpos;
+        y = ypos;
+        width = dragWidth;
+        rangeStart = start;
+        rangeEnd = end;
+        value = initial;
+        name = id;
+    }
+
+    void draw()
+    {
+        stroke(strokeColors[currentBackground]);
+        fill(fillColors[currentBackground]);
+
+        int valueHeight = 20;
+        textSize(valueHeight);
+        String formatted = String.format("%d", value);
+        float valueWidth = textWidth(formatted);
+        text(formatted, x - valueWidth * 1.5, y + valueHeight / 3);
+
+        valueWidth = textWidth(name);
+        text(name, x + width - valueWidth, y - valueHeight);
+
+        strokeWeight(4);
+        line(x, y, x + width, y);
+        noStroke();
+        float dragX = map(value, rangeStart, rangeEnd, 0, width);
+        ellipse(x + dragX, y, 10, 10);
+        strokeWeight(2);
+    }
+
+    void handleDrag()
+    {
+        int padding = 30;
+        if (mouseY < y - (padding / 2) || mouseY > y + (padding / 2))
+            return; // Only drag when on the slider
+        int xpos = max(x, min(mouseX, x + width));
+        value = (int)map(xpos - x, 0, width, rangeStart, rangeEnd);
+    }
+}
+
 color grey = color(128, 128, 128);
 color black = color(0, 0, 0);
 color blue = color(0, 0, 255);
@@ -156,9 +203,15 @@ color white = color(255, 255, 255);
 color orange = color(250, 143, 2);
 color red = color(255, 0, 0);
 color green = color(0, 255, 0);
-color rodColors[] = {grey, grey, green, blue};
+color strokeColors[] = {grey, grey, green, blue};
 color bgColors[] = {black, white, black, green};
 color fillColors[] = {blue, orange, red, red};
+
+Slider gravitySlider = new Slider("Gravity", 1, 110, 100, 50, 0, 10);
+Slider rodSlider1 = new Slider("Rod #1", 100, 80, 180, 80, 100, 250);
+Slider rodSlider2 = new Slider("Rod #2", 100, 80, 260, 80, 100, 250);
+Slider massSlider1 = new Slider("Mass #1", 20, 80, 340, 80, 10, 50);
+Slider massSlider2 = new Slider("Mass #2", 20, 80, 420, 80, 10, 50);
 
 DoublePendulum dp = new DoublePendulum();
 int currentBackground = 0; // ranges from 0 to 3
@@ -166,12 +219,9 @@ boolean tracePendulumPath = false;
 boolean tracePendulum = false;
 boolean paused = false;
 
-int originX = 300;
-int originY = 100;
-
 void setup()
 {
-    size(600, 600);
+    size(700, 600);
     strokeWeight(2);
 }
 
@@ -181,7 +231,7 @@ void drawPendulumPath(DoublePendulum dp)
     int i = 0;
     for (Node n = dp.prevPositions.head.next; n != null; n = n.next) {
         float opacity = 255 / (dp.prevPositions.size - i);
-        stroke(rodColors[currentBackground], opacity);
+        stroke(strokeColors[currentBackground], opacity);
         line(n.prev.data[0], n.prev.data[1], n.data[0], n.data[1]);
         i++;
     }
@@ -190,6 +240,9 @@ void drawPendulumPath(DoublePendulum dp)
 // Draw the double pendulum (lines and masses) at the xy position
 void drawDoublePendulum(DoublePendulum dp, float angle1, float angle2, float opacity)
 {
+    int originX = 400;
+    int originY = 100;
+
     // This looks backwards, but since the angle in our triangle
     // is shooting downwards, the x value would be the
     // opposite and the y value would be the adjacent
@@ -198,11 +251,11 @@ void drawDoublePendulum(DoublePendulum dp, float angle1, float angle2, float opa
     float x2 = x1 - dp.rod2 * sin(angle2);
     float y2 = y1 + dp.rod2 * cos(angle2);
     if (tracePendulumPath) {
-        dp.prevPositions.add(x2, y2 + dp.mass2 / 2); 
+        dp.prevPositions.add(x2, y2 + dp.mass2 / 2);
     }
 
     // Draw the rods
-    stroke(rodColors[currentBackground], opacity);
+    stroke(strokeColors[currentBackground], opacity);
     line(originX, originY, x1, y1);
     line(x1, y1, x2, y2);
 
@@ -213,7 +266,7 @@ void drawDoublePendulum(DoublePendulum dp, float angle1, float angle2, float opa
     ellipse(x2, y2, dp.mass2, dp.mass2);
 }
 
-void drawDoublePendulumMotion(DoublePendulum dp, int x, int y)
+void drawDoublePendulumMotion(DoublePendulum dp)
 {
     if (tracePendulumPath)
         drawPendulumPath(dp);
@@ -244,6 +297,15 @@ void mouseReleased()
     }
 }
 
+void mouseDragged()
+{
+    gravitySlider.handleDrag();
+    rodSlider1.handleDrag();
+    rodSlider2.handleDrag();
+    massSlider1.handleDrag();
+    massSlider2.handleDrag();
+}
+
 void keyReleased()
 {
     // Toggle pause
@@ -254,8 +316,24 @@ void keyReleased()
 void draw()
 {
     if (!paused) {
-        background(bgColors[currentBackground]);
-        dp.step(tracePendulum, originX, originY);
-        drawDoublePendulumMotion(dp, originX, originY);
+        // Gravity is inversely proportional. More gravity should make
+        // the pendulum go slower.
+        float realG = gravitySlider.rangeEnd - gravitySlider.value;
+        realG /= gravitySlider.rangeEnd - gravitySlider.rangeStart;
+        dp.gravity = realG;
+
+        dp.rod1 = rodSlider1.value;
+        dp.rod2 = rodSlider2.value;
+        dp.mass1 = massSlider1.value;
+        dp.mass2 = massSlider2.value;
+        dp.step(tracePendulum);
     }
+
+    background(bgColors[currentBackground]);
+    drawDoublePendulumMotion(dp);
+    gravitySlider.draw();
+    rodSlider1.draw();
+    rodSlider2.draw();
+    massSlider1.draw();
+    massSlider2.draw();
 }
