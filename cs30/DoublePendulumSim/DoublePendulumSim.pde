@@ -1,6 +1,6 @@
 /*
 Double Pendulum Simulator
-Abigail Adegbiji - September 27, 2024
+Abigail Adegbiji - September 26, 2024
 
 This program simulates the motion of a double pendulum and allows
 the user to contrl various aspects of it. A double pendulum is a pendulum
@@ -217,7 +217,7 @@ Slider sliders[];
 color bgColors[] = {color(255, 255, 255), color(255, 255, 255), color(0, 0, 0), color(19, 41, 61)};
 color fillColors[] = {color(34, 34, 34),  color(255, 104, 107), color(255, 0, 0), color(27, 152, 224)};
 color strokeColors[] = {color(75, 78, 109), color(49, 175, 144),  color(0, 255, 0), color(0, 100, 148)};
-String copyright[] = {"© Abigail Adegbiji", "September 27, 2024"};
+String copyright[] = {"© Abigail Adegbiji", "September 26, 2024"};
 String objects[] = {"Gravity slider", "Rod #1", "Rod #1 slider", "Rod #2", "Rod #2 slider", "Mass #1", "Mass #1 slider", "Mass #2", "Mass #2 slider"};
 
 int currentBackground = 0;
