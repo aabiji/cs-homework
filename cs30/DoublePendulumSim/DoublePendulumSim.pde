@@ -2,6 +2,8 @@
 Double Pendulum Simulator
 Abigail Adegbiji - September 26, 2024
 
+TODO: ask about scrolling behaviour, ternary operators, equation code, 
+
 TODO: rewrite this -- refactor more
 This programs simulates a double pendulum and allows the user
 to control various aspects of it. The program has 4 possible states:
