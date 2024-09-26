@@ -268,11 +268,6 @@ void mouseReleased() {
     boolean onText = mouseY > textY - padding / 2 && mouseY < textY + padding / 2;
     if (onText) drawCopyright = !drawCopyright;
   }
-  
-  // Clicking on the slider should also drag
-  for (int i = 0; i < 5; i++) {
-    sliders[i].handleDrag();
-  }
 }
 
 void mouseDragged() {
