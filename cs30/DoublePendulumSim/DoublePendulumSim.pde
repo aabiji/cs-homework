@@ -1,353 +1,356 @@
-class Node {
-    Float[] data;
-    Node next;
-    Node prev;
+/*
+Double Pendulum Simulator
+Abigail Adegbiji - September 26, 2024
 
-    Node() {
-       data = new Float[2];
-       next = null;
-       prev = null;
-    }
+TODO: rewrite this -- refactor more
+This programs simulates a double pendulum and allows the user
+to control various aspects of it. The program has 4 possible states:
+In the first state, we have a normal simulation, in the second state
+our simulation will draw the path of the pendulum, in the third state,
+our simulation will draw the path of the entire pendulum and in the last
+state, our simulation will draw both the path of the pendulum and the path
+of the entire pendulum.
+*/
+
+class Node {
+  Float[] data;
+  Node prev, next;
+
+  Node() {
+    data = new Float[2];
+    prev = next = null;
+  }
 }
 
-// Custom linked list
 class List {
-   Node head;
-   Node tail;
-   int size;
-   int maxSize;
+  Node head, tail;
+  int length, maxLength;
 
    List(int max) {
-        head = new Node();
-        tail = head;
-        maxSize = max;
-        size = 1;
+    head = new Node();
+    tail = head;
+    length = 1;
+    maxLength = max;
    }
 
-   void insertAtEnd(float a, float b) {
-        if (head == null) return;
+  void insertAtEnd(float a, float b) {
+    if (head == null) return;
 
-        boolean headFilled = head.data[0] != null;
-        if (!headFilled) {
-            head.data[0] = a;
-            head.data[1] = b;
-            return;
-        }
+    // Make sure we've filled our empty starting node first
+    boolean headFilled = head.data[0] != null;
+    if (!headFilled) {
+      head.data[0] = a;
+      head.data[1] = b;
+      return;
+    }
 
-        Node n = new Node();
-        n.data[0] = a;
-        n.data[1] = b;
+    Node node = new Node();
+    node.data[0] = a;
+    node.data[1] = b;
+    length++;
 
-        tail.next = n;
-        n.prev = tail;
-        tail = n;
-        size++;
-   }
+    // Add a forwards pointer to our new node
+    // and make our new node the tail
+    tail.next = node;
+    node.prev = tail;
+    tail = node;
+  }
 
    void add(float a, float b) {
-        insertAtEnd(a, b);
-        if (size >= maxSize)
-            shiftUp();
+    insertAtEnd(a, b);
+    if (length >= maxLength)
+        removeHead();
    }
 
-   void shiftUp() {
-        if (head.next == null) return;
-        head.next.prev = null;
-        head = head.next;
-        size --;
+   void removeHead() {
+    if (head.next == null) return;
+    // Move all the elements up by 1 place. This is fast because
+    // instead of having to shift all elements up one by one, we
+    // can just replace the head node and have Java clean it up for us.
+    head.next.prev = null;
+    head = head.next;
+    length--;
    }
 
    void empty() {
-        size = 1;
-        head = new Node();
-        tail = head;
+    // "Remove" all elements from the list by replacing the head node with an empty one
+    length = 1;
+    head = new Node();
+    tail = head;
    }
+}
+
+class Pendulum {
+  float a_vel = 0.0;  // Angular velocity
+  float a_acc = 0.0;  // Angular acceleration
+  float angle = PI/4; // Angle of the rod from the origin
+  float rod   = 0.0;  // Rod length
+  float mass  = 0.0;  // Mass weight
 }
 
 // Handles simulating the behaviour of a double pendulum
 class DoublePendulum {
-    // First pendulum
-    float angular_vel1 = 0.0; // Angular velocity
-    float angular_acc1 = 0.0; // Angular acceleration
-    float angle1 = PI/4;  // Angle of the rod from the origin
-    float rod1; // Length of the rod
-    float mass1; // Weight of the mass
+  Pendulum top;
+  Pendulum bottom;
+  float gravity;
+  List positions; // xy positions of the pendulum's path
+  List angles;    // angles of the pendulum's rods
 
-    // Second pendulum
-    float angular_vel2 = 0;
-    float angular_acc2 = 0;
-    float angle2 = PI/8;
-    float rod2;
-    float mass2;
+  DoublePendulum() {
+    positions = new List(65);
+    angles = new List(10);
+    top = new Pendulum();
+    bottom = new Pendulum();
+  }
 
-    float gravity; // Gravitational constant
+  Float[] getCoordinates(int originX, int originY, float angle1, float angle2) {
+    // This looks backwards, but since the angle in our triangle
+    // is shooting downwards, the x value would be the
+    // opposite and the y value would be the adjacent
+    Float[] values = new Float[4]; // {x1, y1, x2, y2}
+    values[0] = originX - top.rod * sin(angle1);
+    values[1] = originY + top.rod * cos(angle1);
+    values[2] = values[0] - bottom.rod * sin(angle2);
+    values[3] = values[1] + bottom.rod * cos(angle2);
+    return values;
+  }
 
-    List prevPositions;
-    List prevAngles;
+  // Compound the angular accelerations to the angular velocities
+  // and the angular velocities to the angles. The equations of motions come from
+  // here: https://www.myphysicslab.com/pendulum/double-pendulum-en.html
+  void substep(int substepCount) {
+    // TODO: ask him about this
+    float den = (2 * top.mass + bottom.mass - bottom.mass * cos(2 * top.angle - 2 * bottom.angle));
+    float a = -gravity * (2 * top.mass + bottom.mass) * sin(top.angle);
+    float b = -bottom.mass * gravity * sin(top.angle - 2 * bottom.angle);
+    float c = -2 * sin(top.angle - bottom.angle) * bottom.mass;
+    float d = bottom.a_vel * bottom.a_vel * bottom.rod;
+    float e = top.a_vel * top.a_vel * top.rod * cos(top.angle - bottom.angle);
+    float f = 2 * sin(top.angle - bottom.angle);
+    float g = top.a_vel * top.a_vel * top.rod * (top.mass + bottom.mass);
+    float h = gravity * (top.mass + bottom.mass) * cos(top.angle);
+    float i = bottom.a_vel * bottom.a_vel * bottom.rod * bottom.mass * cos(top.angle - bottom.angle);
 
-    public DoublePendulum() {
-        prevPositions = new List(65);
-        prevAngles = new List(10);
+    top.a_acc = (a + b + c * (d + e)) / (top.rod * den);
+    top.a_vel += top.a_acc / substepCount;
+    top.angle += top.a_vel / substepCount;
+    top.angle %= 2 * PI; // Force angle to be between -PI and PI
+
+    bottom.a_acc = f * (g + h + i) / (bottom.rod * den);
+    bottom.a_vel += bottom.a_acc / substepCount;
+    bottom.angle += bottom.a_vel / substepCount;
+    bottom.angle %= 2 * PI; // Force angle to be between -PI and PI
+  }
+
+  void step(boolean recordPath, boolean recordAngles, int count, int x, int y) {
+    // Since we are using numerical methods, our simulation will be prone to errors.
+    // There are analytical solutions to the double pendulum problem, but as of now,
+    // they are still approximate. So, we'll stick with our numerical solution,
+    // but split the simulation into substeps to try to minimize error. This explanation is nice:
+    // https://stackoverflow.com/questions/67203975/why-is-my-code-for-a-double-pendulum-returning-nan
+    for (int i = 0; i < count; i++) {
+      substep(count);
     }
 
-    // Compound the angular accelerations to the angular velocities
-    // and the angular velocities to the angles.
-    // The equations of motion come from [here](https://www.myphysicslab.com/pendulum/double-pendulum-en.html).
-    // The equations are slightly horrifying, but the derivation is interesting.
-    void subStep(int substepCount) {
-        float den = (2 * mass1 + mass2 - mass2 * cos(2 * angle1 - 2 * angle2));
-        float a = -gravity * (2 * mass1 + mass2) * sin(angle1);
-        float b = -mass2 * gravity * sin(angle1 - 2 * angle2);
-        float c = -2 * sin(angle1 - angle2) * mass2;
-        float d = angular_vel2 * angular_vel2 * rod2;
-        float e = angular_vel1 * angular_vel1 * rod1 * cos(angle1 - angle2);
-        float f = 2 * sin(angle1 - angle2);
-        float g = angular_vel1 * angular_vel1 * rod1 * (mass1 + mass2);
-        float h = gravity * (mass1 + mass2) * cos(angle1);
-        float i = angular_vel2 * angular_vel2 * rod2 * mass2 * cos(angle1 - angle2);
+    Float[] xy = getCoordinates(x, y, top.angle, bottom.angle);
+    if (recordPath)
+      positions.add(xy[2], xy[3] + bottom.mass / 2);
 
-        angular_acc1 = (a + b + c * (d + e)) / (rod1 * den);
-        angular_vel1 += (angular_acc1 / substepCount);
-        angle1  += (angular_vel1 / substepCount);
-        angle1 %= (2 * PI); // Force angle to be between -PI and PI
-
-        angular_acc2 = f * (g + h + i) / (rod2 * den);
-        angular_vel2 += (angular_acc2 / substepCount);
-        angle2  += (angular_vel2 / substepCount);
-        angle2 %= (2 * PI); // Force angle to be between -PI and PI
-    }
-
-    void step(boolean shouldTraceAngles) {
-        // Since we are using numerical methods, our simulation will be
-        // prone to errors. There are analytical solutions to the double
-        // pendulum problem, but as of now, even they are approximate.
-        // So, we'll stick with our numerical solution, but split the
-        // simulation into substeps to try to minimize error.
-        // This [explanation](https://stackoverflow.com/questions/67203975/why-is-my-code-for-a-double-pendulum-returning-nan)
-        // is really nice
-        int substepCount = 50;
-        for (int i = 0; i < substepCount; i++) {
-            subStep(substepCount);
-        }
-
-        if (shouldTraceAngles) {
-            prevAngles.add(angle1, angle2);
-        }
-    }
+    if (recordAngles)
+      angles.add(top.angle, bottom.angle);
+  }
 }
 
 // Slider UI component
 class Slider {
-    int x, y;
-    int width;
-    int rangeStart, rangeEnd;
-    int value;
-    String name;
+  String name;
+  int x, y, lineWidth , value;
+  int rangeStart, rangeEnd;
 
-    Slider(String id, int initial, int xpos, int ypos, int dragWidth, int start, int end) {
-        x = xpos;
-        y = ypos;
-        width = dragWidth;
-        rangeStart = start;
-        rangeEnd = end;
-        value = initial;
-        name = id;
-    }
+  Slider(String id, int initial, int xpos, int ypos, int start, int end, int dragWidth) {
+    x = xpos;
+    y = ypos;
+    lineWidth = dragWidth;
+    rangeStart = start;
+    rangeEnd = end;
+    value = initial;
+    name = id;
+  }
 
-    void draw() {
-        stroke(strokeColors[currentBackground]);
-        fill(fillColors[currentBackground]);
+  void draw() {
+    int textHeight = 20;
+    stroke(strokeColors[currentBackground]);
+    fill(fillColors[currentBackground]);
+    textSize(textHeight);
+    strokeWeight(4);
 
-        int valueHeight = 20;
-        textSize(valueHeight);
-        String formatted = String.format("%d", value);
-        float valueWidth = textWidth(formatted);
-        text(formatted, x - valueWidth * 1.5, y + valueHeight / 3);
+    // Draw the labels and the slider line
+    String str = String.format("%d", value);
+    text(str, x - textWidth(str) * 1.5, y + textHeight / 3);
+    text(name, x + lineWidth - textWidth(name), y - textHeight);
+    line(x, y, x + lineWidth, y);
 
-        valueWidth = textWidth(name);
-        text(name, x + width - valueWidth, y - valueHeight);
+    // Draw the slider drag handle
+    noStroke();
+    float handleX = map(value, rangeStart, rangeEnd, 0, lineWidth);
+    ellipse(x + handleX, y, 10, 10);
+    strokeWeight(2);
+  }
 
-        strokeWeight(4);
-        line(x, y, x + width, y);
-        noStroke();
-        float dragX = map(value, rangeStart, rangeEnd, 0, width);
-        ellipse(x + dragX, y, 10, 10);
-        strokeWeight(2);
-    }
-
-    void handleDrag() {
-        int padding = 30;
-        if (mouseY < y - (padding / 2) || mouseY > y + (padding / 2))
-            return; // Only drag when on the slider
-        int xpos = max(x, min(mouseX, x + width));
-        value = (int)map(xpos - x, 0, width, rangeStart, rangeEnd);
-    }
+  void handleDrag() {
+    int padding = 30;
+    boolean onSlider = mouseY > y - padding / 2 && mouseY < y + padding / 2;
+    if (!onSlider) return; // Only drag when our cursor is on the slider
+    int xpos = max(x, min(mouseX, x + lineWidth)); // Clamp to the slider bounds
+    value = (int)map(xpos - x, 0, lineWidth, rangeStart, rangeEnd);
+  }
 }
 
-Slider gravitySlider = new Slider("Gravity", 1, 100, 100, 80, 0, 10);
-Slider rodSlider1 = new Slider("Rod #1", 100, 80, 180, 100, 100, 250);
-Slider rodSlider2 = new Slider("Rod #2", 100, 80, 260, 100, 100, 250);
-Slider massSlider1 = new Slider("Mass #1", 20, 80, 340, 100, 10, 50);
-Slider massSlider2 = new Slider("Mass #2", 20, 80, 420, 100, 10, 50);
-
-color bgColors[]     = {color(255, 255, 255), color(255, 255, 255), color(0, 0, 0),   color(19, 41, 61)};
-color fillColors[]   = {color(34, 34, 34),    color(255, 104, 107), color(255, 0, 0), color(27, 152, 224)};
-color strokeColors[] = {color(75, 78, 109),   color(49, 175, 144),  color(0, 255, 0), color(0, 100, 148)};
-
-int textY = 550;
-int objectsDirection = 1, copyrightDirection = 1;
-int objectX = 400, copyrightX = 200;
-int objectsWidth = -1, copyrightWidth = -1;
+Slider sliders[];
+color bgColors[] = {color(255, 255, 255), color(255, 255, 255), color(0, 0, 0), color(19, 41, 61)};
+color fillColors[] = {color(34, 34, 34),  color(255, 104, 107), color(255, 0, 0), color(27, 152, 224)};
+color strokeColors[] = {color(75, 78, 109), color(49, 175, 144),  color(0, 255, 0), color(0, 100, 148)};
 String copyright[] = {"© Abigail Adegbiji", "September 26, 2024"};
-String objectNames[] = {"Gravity slider", "Rod #1", "Rod #1 slider", "Rod #2", "Rod #2 slider", "Mass #1", "Mass #1 slider", "Mass #2", "Mass #2 slider"};
+String objects[] = {"Gravity slider", "Rod #1", "Rod #1 slider", "Rod #2", "Rod #2 slider", "Mass #1", "Mass #1 slider", "Mass #2", "Mass #2 slider"};
 
-DoublePendulum dp = new DoublePendulum();
-int currentBackground = 0; // ranges from 0 to 3
-boolean tracePendulumPath = false;
-boolean tracePendulum = false;
+int currentBackground = 0;
 boolean paused = false;
 boolean drawCopyright = false;
+boolean drawMany = false;
+boolean drawPath = false;
+DoublePendulum dp = new DoublePendulum();
+
+int originX = 450;
+int originY = 100;
+int textY = 550;
+int scrollX = 400;
 
 void setup() {
-    size(700, 600);
-    strokeWeight(2);
+  size(700, 600);
+  strokeWeight(2);
+
+  // Create our set of sliders
+  int index = 0;
+  sliders = new Slider[5];
+  for (int i = 0; i < objects.length; i++) {
+    String objectName = objects[i];
+    if (objectName.contains("slider")) {
+      String name = objectName.replace(" slider", "");
+      int value = name.contains("Gravity") ? 1 : name.contains("Mass") ? 20 : 100;
+      int start = name.contains("Gravity") ? 1 : name.contains("Mass") ? 10 : 100;
+      int end = name.contains("Gravity") ? 10 : name.contains("Mass") ? 50 : 250;
+      sliders[index++] = new Slider(name, value, 100, 100 + i * 40, start, end, 100);
+    }
+  }
 }
 
-void drawPendulumPath(DoublePendulum dp) {
-    // Draw a fading trail of lines
-    int i = 0;
-    for (Node n = dp.prevPositions.head.next; n != null; n = n.next) {
-        float opacity = 255 / (dp.prevPositions.size - i);
-        stroke(strokeColors[currentBackground], opacity);
-        line(n.prev.data[0], n.prev.data[1], n.data[0], n.data[1]);
-        i++;
-    }
-}
-
-// Draw the double pendulum (lines and masses) at the xy position
-void drawDoublePendulum(DoublePendulum dp, float angle1, float angle2, float opacity) {
-    int originX = 400;
-    int originY = 100;
-
-    // This looks backwards, but since the angle in our triangle
-    // is shooting downwards, the x value would be the
-    // opposite and the y value would be the adjacent
-    float x1 = originX - dp.rod1 * sin(angle1);
-    float y1 = originY + dp.rod1 * cos(angle1);
-    float x2 = x1 - dp.rod2 * sin(angle2);
-    float y2 = y1 + dp.rod2 * cos(angle2);
-    if (tracePendulumPath) {
-        dp.prevPositions.add(x2, y2 + dp.mass2 / 2);
-    }
-
-    // Draw the rods
+void drawPendulumPath() {
+  // Draw a fading trail of lines following the pendulum's path
+  int i = 0;
+  for (Node n = dp.positions.head.next; n != null; n = n.next) {
+    float opacity = 255 / (dp.positions.length - i);
     stroke(strokeColors[currentBackground], opacity);
-    line(originX, originY, x1, y1);
-    line(x1, y1, x2, y2);
-
-    // Draw the masses with no outline
-    noStroke();
-    fill(fillColors[currentBackground], opacity);
-    ellipse(x1, y1, dp.mass1, dp.mass1);
-    ellipse(x2, y2, dp.mass2, dp.mass2);
+    line(n.prev.data[0], n.prev.data[1], n.data[0], n.data[1]);
+    i++;
+  }
 }
 
-void drawDoublePendulumMotion(DoublePendulum dp) {
-    if (tracePendulumPath)
-        drawPendulumPath(dp);
+void drawDoublePendulum(float angle1, float angle2, float opacity) {
+  Float[] coordinates = dp.getCoordinates(originX, originY, angle1, angle2);
 
-    if (!tracePendulum) {
-        drawDoublePendulum(dp, dp.angle1, dp.angle2, 255);
-        return;
-    }
+  // Draw the pendulum rods
+  stroke(strokeColors[currentBackground], opacity);
+  line(originX, originY, coordinates[0], coordinates[1]);
+  line(coordinates[0], coordinates[1], coordinates[2], coordinates[3]);
 
-    // Draw a fading trail of pendulums
-    int i = 0;
-    for (Node n = dp.prevAngles.head; n != null; n = n.next) {
-        float opacity = 255 / (dp.prevAngles.size - i);
-        drawDoublePendulum(dp, n.data[0], n.data[1], opacity);
-        i ++;
-    }
+  // Draw the pendulum masses with no outline
+  noStroke();
+  fill(fillColors[currentBackground], opacity);
+  ellipse(coordinates[0], coordinates[1], dp.top.mass, dp.top.mass);
+  ellipse(coordinates[2], coordinates[3], dp.bottom.mass, dp.bottom.mass);
+}
+
+void drawDoublePendulumMotion() {
+  if (drawPath) drawPendulumPath();
+  if (!drawMany) {
+    drawDoublePendulum(dp.top.angle, dp.bottom.angle, 255);
+    return;
+  }
+
+  // Draw a fading trail of double pendulums
+  int i = 0;
+  for (Node n = dp.angles.head; n != null; n = n.next) {
+    float opacity = 255 / (dp.angles.length - i);
+    drawDoublePendulum(n.data[0], n.data[1], opacity);
+    i++;
+  }
 }
 
 void drawScrollingText() {
-    textSize(15);
-    int textX = 0;
-    if (drawCopyright) {
-        copyrightX -= copyrightDirection * 2;
-        if (copyrightWidth != -1 && (copyrightX < -copyrightWidth / 2 || copyrightX > 400 + copyrightWidth / 2))
-          copyrightDirection *= -1;
-        for (int i = 0; i < copyright.length; i++) {
-            text(copyright[i], copyrightX + textX, textY);
-            textX += textWidth(copyright[i]) + 25;
-        }
-        copyrightWidth = textX;
-    } else {
-        objectX -= objectsDirection * 2;
-        if (objectsWidth != -1 && (objectX < -objectsWidth / 2 || objectX > objectsWidth / 2))
-          objectsDirection *= -1;
-        for (int i = 0; i < objectNames.length; i++) {
-            text(objectNames[i], objectX + textX, textY);
-            textX += textWidth(objectNames[i]) + 25;
-        }
-        objectsWidth = textX;
-    }
+  textSize(15);
+  int textX = 0;
+  int scrollWidth = 0;
+  String[] arr = drawCopyright ? copyright : objects;
+
+  if (!paused) scrollX -= 2;
+  for (int i = 0; i < arr.length; i++) {
+    text(arr[i], scrollX + textX, textY);
+    textX += textWidth(arr[i]) + 25;
+  }
+
+  if (scrollX < -textX)
+    scrollX = 700; // Wrap back around
 }
 
 void mouseReleased() {
-    // Cycle through the program state on right click
-    if (mouseButton == RIGHT) {
-        currentBackground = (currentBackground + 1) % 4;
-        tracePendulumPath = currentBackground == 1 || currentBackground == 3;
-        tracePendulum = currentBackground == 2 || currentBackground == 3;
-        
-        if (!tracePendulum) dp.prevAngles.empty();
-        if (!tracePendulumPath) dp.prevPositions.empty();
-    }
-    
-    // Toggle scrolling objects and copyright
-    if (mouseButton == LEFT) {
-        int padding = 30;
-        if (mouseY > textY - padding / 2 && mouseY < textY + padding / 2)
-            drawCopyright = !drawCopyright;
-    }
+  // Cycle through the program state on right click
+  if (mouseButton == RIGHT) {
+    currentBackground = (currentBackground + 1) % 4;
+    drawPath = currentBackground == 1 || currentBackground == 3;
+    drawMany = currentBackground == 2 || currentBackground == 3;
+    if (!drawMany) dp.angles.empty();
+    if (!drawPath) dp.positions.empty();
+  }
+
+  // Toggle between scrolling objects and copyright
+  if (mouseButton == LEFT) {
+    int padding = 30;
+    boolean onText = mouseY > textY - padding / 2 && mouseY < textY + padding / 2;
+    if (onText) drawCopyright = !drawCopyright;
+  }
 }
 
 void mouseDragged() {
-    gravitySlider.handleDrag();
-    rodSlider1.handleDrag();
-    rodSlider2.handleDrag();
-    massSlider1.handleDrag();
-    massSlider2.handleDrag();
+  for (int i = 0; i < 5; i++) {
+    sliders[i].handleDrag();
+  }
 }
 
 void keyReleased() {
-    // Toggle pause
-    if (key == ' ')
-        paused = !paused;
+  // Toggle pause
+  if (key == ' ') paused = !paused;
 }
 
 void draw() {
-    if (!paused) {
-        // Gravity is inversely proportional. More gravity should make
-        // the pendulum go slower.
-        float realG = gravitySlider.rangeEnd - gravitySlider.value;
-        realG /= gravitySlider.rangeEnd - gravitySlider.rangeStart;
-        dp.gravity = realG;
+  // Gravity is inversely proportional.
+  float realG = sliders[0].rangeEnd - sliders[0].value;
+  realG /= sliders[0].rangeEnd - sliders[0].rangeStart;
+  dp.gravity = realG;
 
-        dp.rod1 = rodSlider1.value;
-        dp.rod2 = rodSlider2.value;
-        dp.mass1 = massSlider1.value;
-        dp.mass2 = massSlider2.value;
-        dp.step(tracePendulum);
-    }
+  // Se the pendulum values
+  dp.top.rod = sliders[1].value;
+  dp.bottom.rod = sliders[2].value;
+  dp.top.mass = sliders[3].value;
+  dp.bottom.mass = sliders[4].value;
 
-    background(bgColors[currentBackground]);
-    drawDoublePendulumMotion(dp);
-    gravitySlider.draw();
-    rodSlider1.draw();
-    rodSlider2.draw();
-    massSlider1.draw();
-    massSlider2.draw();
-    drawScrollingText();
+  if (!paused)
+    dp.step(drawPath, drawMany, 50, originX, originY);
+
+  background(bgColors[currentBackground]);
+  drawDoublePendulumMotion();
+  text("Press SPACE to toggle pause", 50, 480);
+  for (int i = 0; i < 5; i++) {
+    sliders[i].draw();
+  }
+  drawScrollingText();
 }
