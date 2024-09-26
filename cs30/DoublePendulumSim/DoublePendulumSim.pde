@@ -1,17 +1,22 @@
 /*
 Double Pendulum Simulator
-Abigail Adegbiji - September 26, 2024
+Abigail Adegbiji - September 27, 2024
 
-TODO: ask about scrolling behaviour, ternary operators, equation code, 
+This program simulates the motion of a double pendulum and allows
+the user to contrl various aspects of it. A double pendulum is a pendulum
+with another pendulum attached to its end that moves in a chaotic way.
 
-TODO: rewrite this -- refactor more
-This programs simulates a double pendulum and allows the user
-to control various aspects of it. The program has 4 possible states:
-In the first state, we have a normal simulation, in the second state
-our simulation will draw the path of the pendulum, in the third state,
-our simulation will draw the path of the entire pendulum and in the last
-state, our simulation will draw both the path of the pendulum and the path
-of the entire pendulum.
+Interaction:
+- You can use the SPACE key to pause/unpause the simulation.
+- You can adjust the various apsects of the simulation using sliders
+- You can right click to cycle through the simulation states.
+- You can click the scrolling text to switch between the object list and copyright.
+
+Simulation states:
+1. Simulation with no effects.
+2. Simulation that traces the path of the lower mass.
+3. Simulation that traces the path of the entire double pendulum.
+4. A combination of the second and third states.
 */
 
 class Node {
@@ -24,6 +29,7 @@ class Node {
   }
 }
 
+// Custom linked list implementation.
 class List {
   Node head, tail;
   int length, maxLength;
@@ -121,7 +127,6 @@ class DoublePendulum {
   // and the angular velocities to the angles. The equations of motions come from
   // here: https://www.myphysicslab.com/pendulum/double-pendulum-en.html
   void substep(int substepCount) {
-    // TODO: ask him about this
     float den = (2 * top.mass + bottom.mass - bottom.mass * cos(2 * top.angle - 2 * bottom.angle));
     float a = -gravity * (2 * top.mass + bottom.mass) * sin(top.angle);
     float b = -bottom.mass * gravity * sin(top.angle - 2 * bottom.angle);
@@ -212,7 +217,7 @@ Slider sliders[];
 color bgColors[] = {color(255, 255, 255), color(255, 255, 255), color(0, 0, 0), color(19, 41, 61)};
 color fillColors[] = {color(34, 34, 34),  color(255, 104, 107), color(255, 0, 0), color(27, 152, 224)};
 color strokeColors[] = {color(75, 78, 109), color(49, 175, 144),  color(0, 255, 0), color(0, 100, 148)};
-String copyright[] = {"© Abigail Adegbiji", "September 26, 2024"};
+String copyright[] = {"© Abigail Adegbiji", "September 27, 2024"};
 String objects[] = {"Gravity slider", "Rod #1", "Rod #1 slider", "Rod #2", "Rod #2 slider", "Mass #1", "Mass #1 slider", "Mass #2", "Mass #2 slider"};
 
 int currentBackground = 0;
@@ -221,7 +226,6 @@ boolean drawCopyright = false;
 boolean drawMany = false;
 boolean drawPath = false;
 DoublePendulum dp = new DoublePendulum();
-
 int originX = 450;
 int originY = 100;
 int textY = 550;
@@ -238,12 +242,48 @@ void setup() {
     String objectName = objects[i];
     if (objectName.contains("slider")) {
       String name = objectName.replace(" slider", "");
-      int value = name.contains("Gravity") ? 1 : name.contains("Mass") ? 20 : 100;
-      int start = name.contains("Gravity") ? 1 : name.contains("Mass") ? 10 : 100;
-      int end = name.contains("Gravity") ? 10 : name.contains("Mass") ? 50 : 250;
+      boolean isGravity = name.contains("Gravity");
+      boolean isMass = name.contains("Mass");
+      int value = isGravity ? 1 : isMass ? 20 : 100;
+      int start = isGravity ? 1 : isMass ? 10 : 100;
+      int end = isGravity ? 10 : isMass ? 50 : 250;
       sliders[index++] = new Slider(name, value, 100, 100 + i * 40, start, end, 100);
     }
   }
+}
+
+void mouseReleased() {
+  // Cycle through the program state on right click
+  if (mouseButton == RIGHT) {
+    currentBackground = (currentBackground + 1) % 4;
+    drawPath = currentBackground == 1 || currentBackground == 3;
+    drawMany = currentBackground == 2 || currentBackground == 3;
+    if (!drawMany) dp.angles.empty();
+    if (!drawPath) dp.positions.empty();
+  }
+
+  // Toggle between scrolling objects and copyright
+  if (mouseButton == LEFT) {
+    int padding = 30;
+    boolean onText = mouseY > textY - padding / 2 && mouseY < textY + padding / 2;
+    if (onText) drawCopyright = !drawCopyright;
+  }
+  
+  // Clicking on the slider should also drag
+  for (int i = 0; i < 5; i++) {
+    sliders[i].handleDrag();
+  }
+}
+
+void mouseDragged() {
+  for (int i = 0; i < 5; i++) {
+    sliders[i].handleDrag();
+  }
+}
+
+void keyReleased() {
+  // Toggle pause
+  if (key == ' ') paused = !paused;
 }
 
 void drawPendulumPath() {
@@ -291,7 +331,6 @@ void drawDoublePendulumMotion() {
 void drawScrollingText() {
   textSize(15);
   int textX = 0;
-  int scrollWidth = 0;
   String[] arr = drawCopyright ? copyright : objects;
 
   if (!paused) scrollX -= 2;
@@ -304,36 +343,7 @@ void drawScrollingText() {
     scrollX = 700; // Wrap back around
 }
 
-void mouseReleased() {
-  // Cycle through the program state on right click
-  if (mouseButton == RIGHT) {
-    currentBackground = (currentBackground + 1) % 4;
-    drawPath = currentBackground == 1 || currentBackground == 3;
-    drawMany = currentBackground == 2 || currentBackground == 3;
-    if (!drawMany) dp.angles.empty();
-    if (!drawPath) dp.positions.empty();
-  }
-
-  // Toggle between scrolling objects and copyright
-  if (mouseButton == LEFT) {
-    int padding = 30;
-    boolean onText = mouseY > textY - padding / 2 && mouseY < textY + padding / 2;
-    if (onText) drawCopyright = !drawCopyright;
-  }
-}
-
-void mouseDragged() {
-  for (int i = 0; i < 5; i++) {
-    sliders[i].handleDrag();
-  }
-}
-
-void keyReleased() {
-  // Toggle pause
-  if (key == ' ') paused = !paused;
-}
-
-void draw() {
+void updateSimulationVariables() {
   // Gravity is inversely proportional.
   float realG = sliders[0].rangeEnd - sliders[0].value;
   realG /= sliders[0].rangeEnd - sliders[0].rangeStart;
@@ -344,13 +354,16 @@ void draw() {
   dp.bottom.rod = sliders[2].value;
   dp.top.mass = sliders[3].value;
   dp.bottom.mass = sliders[4].value;
+}
 
+void draw() {
+  updateSimulationVariables();
   if (!paused)
     dp.step(drawPath, drawMany, 50, originX, originY);
 
   background(bgColors[currentBackground]);
   drawDoublePendulumMotion();
-  text("Press SPACE to toggle pause", 50, 480);
+  text("Press SPACE to toggle pause", 100, 480);
   for (int i = 0; i < 5; i++) {
     sliders[i].draw();
   }
