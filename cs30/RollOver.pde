@@ -57,9 +57,9 @@ void draw() {
   }
 
   for (int i = 0; i < 4; i++) {
-    // The square should turn on when hovered on
-    if (hoverStates[i]) {
-      // TODO: including the bottom right square!
+    // The square should turn on when hovered on. However the bottom right square
+    // should also fade when clicked
+    if (hoverStates[i] && !(bottomRightClicked && hoverStates[3])) {
       squareColors[i] = baseColors[i];
     }
 
