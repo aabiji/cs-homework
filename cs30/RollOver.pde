@@ -1,7 +1,7 @@
 /*
 Tile draw
 ---------
-Abigail Adegbiji - October 4, 2024
+Abigail Adegbiji - October 7, 2024
 A drawing program that uses a rollover as a color palette.
 Press down and move the mouse to draw.
 
@@ -11,40 +11,49 @@ Clicking the bottom right square makes all the squares
 fade from white to their respective colors. Clicking on
 any of the squares changes the drawing color.
 
-Right clicking on any of the tiles servse as an eraser,
-changing the draw color to transparent.
+Right clicking on any of the tiles serves as an eraser,
+changing the draw color to a transparent white.
 */
 
 // Red, green, blue, yellow
 color baseColors[] = {color(224, 108, 118), color(152, 195, 121), color(97, 175, 239), color(229, 192, 123)};
 color squareColors[] = {baseColors[0], baseColors[1], baseColors[2], baseColors[3]};
+color eraserColor = color(255, 255, 255, 255);
 
 int squareSize = 50;
-int currentColor = color(0, 0, 0, 0);
-
+int currentColor = baseColors[0];
+int penSize = 5;
 boolean reverseFade = false;
-boolean topLeftHovered = false;
+boolean flashColors = false;
 boolean hoverStates[]; // Mouse hover states for the 4 quadrants
 
-PGraphics canvas;
+PGraphics drawCanvas;
 
 void setup() {
   size(600, 600);
-  canvas = createGraphics(600, 600);
+  drawCanvas = createGraphics(600, 600);
+}
+
+void mouseWheel(MouseEvent event) {
+  // Adjust pen size using the mouse wheel scrolling
+  // Scrolling up makes the pen bigger, scrolling down makes it smaller
+  float c = event.getCount();
+  if (c >= 0) penSize = max(penSize - 5, 1);
+  if (c <= 0) penSize += 5;
 }
 
 // Get different shades of a color by controlling its transparency
-color getShade(color c, boolean up) {
-  float direction = up ? -1 : 1;
+color getShade(color c, boolean getLighter) {
+  float direction = getLighter ? -1 : 1;
   float t = alpha(c) - direction * 5;
-  t = min(max(t, 0), 255);
+  t = min(max(t, 0), 255); // Clamp transparency to be between 0 and 255
   return color(red(c), green(c), blue(c), t);
 }
 
 void mousePressed() {
   // Check if the top left square is clicked
   if (hoverStates[0])
-    topLeftHovered = true;
+    flashColors = true;
 
   // Check if the bottom right square is clicked
   if (hoverStates[3]) {
@@ -56,21 +65,23 @@ void mousePressed() {
     }
   }
 
-  // Change the current color by clicking on a qudrant
   for (int i = 0; i < 4; i++) {
+    // Change the current color by left clicking on a qudrant
     if (hoverStates[i] && mouseButton == LEFT) {
       currentColor = baseColors[i];
       break;
     } else if (hoverStates[i] && mouseButton == RIGHT) {
-      currentColor = color(0, 0, 0, 0); // TODO: fixme
+      currentColor = eraserColor;
       break;
     }
   }
 }
 
 void drawSquares() {
-  if (topLeftHovered && !hoverStates[0])
-    topLeftHovered = false;
+  // We shouldn't be flashing colors if the cursor
+  // is no longer in the top left quadrant
+  if (flashColors && !hoverStates[0])
+    flashColors = false;
 
   // Mouse hover states in the 4 quadrants
   boolean left = mouseX <= squareSize;
@@ -80,26 +91,26 @@ void drawSquares() {
   hoverStates = new boolean[]{left && top, right && top, left && bottom, right && bottom};
 
   for (int i = 0; i < 4; i++) {
-    // The square should turn on when hovered on. However the bottom right square
-    // should also fade when clicked
+    // The square should turn on when hovered on. The bottom right square
+    // should also be fading when the other squares are fading
     if (hoverStates[i] && !(reverseFade && hoverStates[3])) {
       squareColors[i] = baseColors[i];
     }
 
     // When the bottom right is clicked all squares should fade from the white to their base color
+    // TODO: should stay that way until the cursor is outside the bottom right square
     else if (reverseFade) {
       squareColors[i] = getShade(squareColors[i], true);
-      if (squareColors[i] == baseColors[i])
-        reverseFade = false;
     }
 
     // If the top left square was clicked and the mouse is still on the top left square
     // all tiles should turn on. Else, the square color should fade.
     else {
-      squareColors[i] = topLeftHovered ? baseColors[i] : getShade(squareColors[i], false);
+      squareColors[i] = flashColors ? baseColors[i] : getShade(squareColors[i], false);
     }
 
     // Draw the square
+    stroke(0);
     fill(squareColors[i]);
     int x = i == 0 || i == 2 ? 0 : squareSize;
     int y = i == 0 || i == 1 ? 0 : squareSize;
@@ -108,27 +119,39 @@ void drawSquares() {
 }
 
 void renderDrawingCanvas() {
-  canvas.beginDraw();
+  drawCanvas.beginDraw();
   
   // Draw the square tile background
-  canvas.strokeWeight(1);
-  canvas.stroke(0);
-  canvas.fill(255);
-  canvas.rect(0, 0, squareSize * 2, squareSize * 2);
+  drawCanvas.strokeWeight(1);
+  drawCanvas.stroke(0);
+  drawCanvas.fill(255);
+  drawCanvas.rect(0, 0, squareSize * 2, squareSize * 2);
 
-  // Draw with mouse
+  // Draw with the mouse
   if (mousePressed) {
-    canvas.strokeWeight(5);
-    canvas.stroke(currentColor);
-    canvas.line(pmouseX, pmouseY, mouseX, mouseY);
+    drawCanvas.strokeWeight(penSize);
+    drawCanvas.stroke(currentColor);
+    drawCanvas.line(pmouseX, pmouseY, mouseX, mouseY);
   }
 
-  canvas.endDraw();
+  drawCanvas.endDraw();
+
+}
+
+void drawPenColor() {
+  // Draw the current color at the mouse position
+  stroke(currentColor);
+  if (currentColor == eraserColor)
+    fill(128, 128, 128, 255);
+  else
+    fill(currentColor);
+  ellipse(mouseX, mouseY, penSize, penSize); 
 }
 
 void draw() { 
   background(255);
   renderDrawingCanvas();
-  image(canvas, 0, 0);
+  image(drawCanvas, 0, 0);
   drawSquares();
+  drawPenColor();
 }
