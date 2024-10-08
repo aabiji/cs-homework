@@ -24,6 +24,7 @@ int squareSize = 50;
 int currentColor = baseColors[0];
 int penSize = 5;
 
+boolean doneReverseFade = false;
 boolean reverseFade = false;
 boolean flashColors = false;
 boolean hoverStates[]; // Mouse hover states for the 4 quadrants
@@ -61,6 +62,7 @@ void mousePressed() {
   // Check if the bottom right square is clicked
   if (hoverStates[3]) {
     reverseFade = true;
+    doneReverseFade = false;
     // Make each square transparent
     for (int i = 0; i < 4; i++) {
       color c = baseColors[i];
@@ -88,7 +90,7 @@ void drawSquares() {
 
   // We need to maintain the color we faded to until the
   // cursor is outside the bottom right square
-  if (reverseFade && !hoverStates[3])
+  if (doneReverseFade && !hoverStates[3])
     reverseFade = false;
 
   // Mouse hover states in the 4 quadrants
@@ -106,6 +108,8 @@ void drawSquares() {
     } else if (reverseFade) {
       // When the bottom right is clicked all squares should fade from the white to their base color
       squareColors[i] = getShade(squareColors[i], true);
+      if (squareColors[i] == baseColors[i])
+        doneReverseFade = true;
     } else {
       // If the top left square was clicked and the mouse is still on the top left square
       // all tiles should turn on. Else, the square color should fade.
