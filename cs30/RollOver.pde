@@ -1,7 +1,7 @@
 /*
 Tile draw
 ---------
-Abigail Adegbiji - October 7, 2024
+Abigail Adegbiji - October 8, 2024
 A drawing program that uses a rollover as a color palette.
 Press down and move the mouse to draw.
 
@@ -23,6 +23,7 @@ color eraserColor = color(255, 255, 255, 255);
 int squareSize = 50;
 int currentColor = baseColors[0];
 int penSize = 5;
+
 boolean reverseFade = false;
 boolean flashColors = false;
 boolean hoverStates[]; // Mouse hover states for the 4 quadrants
@@ -38,14 +39,16 @@ void mouseWheel(MouseEvent event) {
   // Adjust pen size using the mouse wheel scrolling
   // Scrolling up makes the pen bigger, scrolling down makes it smaller
   float c = event.getCount();
-  if (c >= 0) penSize = max(penSize - 5, 1);
-  if (c <= 0) penSize += 5;
+  if (c >= 0)
+    penSize = max(penSize - 5, 1);
+  if (c <= 0)
+    penSize += 5;
 }
 
 // Get different shades of a color by controlling its transparency
 color getShade(color c, boolean getLighter) {
   float direction = getLighter ? -1 : 1;
-  float t = alpha(c) - direction * 5;
+  float t = alpha(c) - direction * 3;
   t = min(max(t, 0), 255); // Clamp transparency to be between 0 and 255
   return color(red(c), green(c), blue(c), t);
 }
@@ -83,6 +86,11 @@ void drawSquares() {
   if (flashColors && !hoverStates[0])
     flashColors = false;
 
+  // We need to maintain the color we faded to until the
+  // cursor is outside the bottom right square
+  if (reverseFade && !hoverStates[3])
+    reverseFade = false;
+
   // Mouse hover states in the 4 quadrants
   boolean left = mouseX <= squareSize;
   boolean right = mouseX >= squareSize && mouseX <= squareSize * 2;
@@ -95,17 +103,12 @@ void drawSquares() {
     // should also be fading when the other squares are fading
     if (hoverStates[i] && !(reverseFade && hoverStates[3])) {
       squareColors[i] = baseColors[i];
-    }
-
-    // When the bottom right is clicked all squares should fade from the white to their base color
-    // TODO: should stay that way until the cursor is outside the bottom right square
-    else if (reverseFade) {
+    } else if (reverseFade) {
+      // When the bottom right is clicked all squares should fade from the white to their base color
       squareColors[i] = getShade(squareColors[i], true);
-    }
-
-    // If the top left square was clicked and the mouse is still on the top left square
-    // all tiles should turn on. Else, the square color should fade.
-    else {
+    } else {
+      // If the top left square was clicked and the mouse is still on the top left square
+      // all tiles should turn on. Else, the square color should fade.
       squareColors[i] = flashColors ? baseColors[i] : getShade(squareColors[i], false);
     }
 
