@@ -19,8 +19,8 @@ class BoundingBox {
   // Calculate the vertices of our rectangle, accounting for rotation
   void calculateVertices() {
     // Vertex positions if the center was (0, 0)
-    // top left, top right, bottom left, bottom right
-    float[][] localPosition = {{-w/2, -h/2}, {w/2, -h/2}, {-w/2, h/2}, {w/2, h/2}};
+    // top right, bottom right, bottom left, top left
+    float[][] localPosition = {{w/2, -h/2}, {w/2, h/2}, {-w/2, h/2}, {-w/2, -h/2}};
     float theta = radians(rotation);
     int centerX = x + w/2;
     int centerY = y + h/2;
@@ -32,12 +32,12 @@ class BoundingBox {
     }
   }
 
-  // Calculate the top, bottom, right and left edge (in that order)
+  // Calculate the right, bottom, left, top (in that order)
   void calculateEdges() {
     edges[0] = new PVector(vertices[1].x - vertices[0].x, vertices[1].y - vertices[0].y);
-    edges[1] = new PVector(vertices[3].x - vertices[2].x, vertices[3].y - vertices[2].y);
-    edges[2] = new PVector(vertices[3].x - vertices[1].x, vertices[3].y - vertices[1].y);
-    edges[3] = new PVector(vertices[2].x - vertices[0].x, vertices[2].y - vertices[0].y);
+    edges[1] = new PVector(vertices[2].x - vertices[1].x, vertices[2].y - vertices[1].y);
+    edges[2] = new PVector(vertices[3].x - vertices[2].x, vertices[3].y - vertices[2].y);
+    edges[3] = new PVector(vertices[3].x - vertices[0].x, vertices[3].y - vertices[0].y);
   }
 }
 
@@ -84,11 +84,12 @@ boolean didCollide(BoundingBox a, BoundingBox b) {
 
     // Check if the left edge of the second rectangle overlaps with the
     // right edge of the first rectangle and that the first rectangle comes
-    // before the second rectangle. Same idea for the second rectangle.
+    // before the second rectangle. Vice versa for the second rectangle.
     boolean noGap = (b_min < a_max && b_min > a_min) || (a_min < b_max && a_min > b_min);
     if (!noGap) return false; // Found a separating axis.
   }
-  return true;
+
+  return true; // We found no separating axis, so there's a collision
 }
 
 BoundingBox boxA = new BoundingBox(25, 25);
