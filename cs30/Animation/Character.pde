@@ -1,16 +1,17 @@
-enum Action {
-  Attack, Idle, Run
-}
+enum Action { Default, Run, Attack }
 
 class Character {
   int x, y;
   int directionX;
   int directionY;
-  int previousKey;
 
   int count;
   int currentFrame;
   int currentAnimation;
+  int previousAnimation;
+
+  boolean pauseMovement;
+  boolean stopWhenDone;
 
   // Index by action index, direction index then frame index
   PImage[][][] animations;
@@ -20,12 +21,15 @@ class Character {
     y = ypos;
     directionX = 0;
     directionY = 0;
-    previousKey = 0;
 
     count = 0;
     currentFrame = 0;
     currentAnimation = 0;
+    previousAnimation = 0;
     loadAnimations(assetFolders);
+
+    stopWhenDone = false;
+    pauseMovement = false;
   }
 
   void loadAnimations(String[] assetFolders) {
@@ -51,6 +55,7 @@ class Character {
     int numFrames = framesObj.size();
     PImage[] frames = new PImage[numFrames];
 
+    // Crop portions of the spritesheet into individual frames
     for (int i = 0; i < numFrames; i++) {
       JSONObject object = framesObj.getJSONObject(i);
       JSONObject obj = object.getJSONObject("frame");
@@ -65,7 +70,6 @@ class Character {
     return frames;
   }
 
-  // TODO: refactor this
   // Get sprite indexes based on the x direction and y direction
   int getDirectionIndex() {
     int[][] indexes = {
@@ -76,10 +80,16 @@ class Character {
     return indexes[directionX + 1][directionY + 1];
   }
 
-  void setAnimation(Action a) {
+  void setAnimation(Action a, boolean stop) {
+    if (currentAnimation == a.ordinal() || (stopWhenDone && a != Action.Default))
+      return; // Preserve the current animation
+
+    previousAnimation = currentAnimation;
     currentAnimation = a.ordinal();
     currentFrame = 0;
     count = 0;
+    stopWhenDone = stop;
+    pauseMovement = stop ? true : false;
   }
 
   void setDirection(int processingKey) {
@@ -87,32 +97,45 @@ class Character {
     if (processingKey == DOWN) directionY = 1;
     if (processingKey == LEFT) directionX = -1;
     if (processingKey == RIGHT) directionX = 1;
-    if (previousKey != processingKey) {
-      setAnimation(Action.Run);
-      previousKey = processingKey;
-    }
   }
 
   void stopMoving() {
     directionX = 0;
     directionY = 0;
-    previousKey = 0;
   }
 
   void move() {
-    x += directionX;
-    y += directionY;
+    if (pauseMovement) return;
+    // Move if our frame is in bounds
+    if (x > -95 && directionX == -1) x -= 2;
+    if (x < 240 && directionX == 1) x += 2;
+    if (y > -55 && directionY == -1) y -= 2;
+    if (y < 260 && directionY == 1) y += 2;
+  }
+
+  void nextFrame(int interval) {
+    count++;
+    if (count != interval)
+      return;
+
+    int direction = getDirectionIndex();
+    int numFrames = animations[currentAnimation][direction].length;
+
+    count = 0;
+    currentFrame++;
+    if (currentFrame >= numFrames) {
+      currentFrame = 0;
+      if (stopWhenDone) {
+        currentAnimation = previousAnimation;
+        stopWhenDone = false;
+        pauseMovement = false;
+      }
+    }
   }
 
   void animate() {
-    int i = getDirectionIndex();
-    image(animations[currentAnimation][i][currentFrame], x, y);
-
-    count++;
-    if (count == 5) {
-      int length = animations[currentAnimation][i].length;
-      currentFrame = (currentFrame + 1) % length;
-      count = 0;
-    }
+    int direction = getDirectionIndex();
+    image(animations[currentAnimation][direction][currentFrame], x, y);
+    nextFrame(5);
   }
 }
