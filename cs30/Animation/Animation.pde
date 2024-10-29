@@ -25,8 +25,11 @@ void keyPressed() {
 }
 
 void keyReleased() {
-  character.stopMoving();
-  character.setAnimation(Action.Default, false);
+  if (keyCode == UP || keyCode == DOWN ||
+      keyCode == LEFT || keyCode == RIGHT) {
+      character.stopMoving();
+      character.setAnimation(Action.Default, false);
+  }
 }
 
 void mousePressed() {
