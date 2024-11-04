@@ -30,25 +30,44 @@ void drawShape(int x, int y, int size, int numSides) {
 
 class Particle {
   PVector velocity;
+  PVector acceleration;
   PVector position;
   int transparency;
   color c;
+  int updateCount;
 
-  Particle(PVector xy, color _color) {
+  Particle(PVector xy, PVector acc, color _color) {
     position = xy.copy();
     velocity = new PVector(random(-1, 1), random(-1, 1));
     transparency = (int)random(128, 255);
-    c = _color; 
+    c = _color;
+    acceleration = acc;
+    updateCount = 0;
   }
 
   boolean dead() {
     return transparency < 0;
   }
 
-  void update(PVector acceleration) {
+  void update() {
     velocity.add(acceleration);
     position.add(velocity);
-    transparency = max(transparency - 1, -1);
+
+    // Bounce off the window borders
+    // TODO: reduce speed when bouncing off and clamp the number of particles
+    if (position.y > height || position.y < 0) {
+      velocity.y *= -1;
+    }
+    if (position.x > width || position.x < 0) {
+      velocity.x *= -1;
+    }
+
+    // Lose a life every 5 updates
+    updateCount++;
+    if (updateCount % 5 == 0) {
+      transparency = max(transparency - 1, -1);
+      updateCount = 0;
+    }
   }
 
   void render(int shape) {
@@ -59,9 +78,9 @@ class Particle {
     noStroke();
     fill(c, transparency);
 
-    // Cycle through drawing rectangle, circle, hexagon and triangle
-    if (shape == 0) drawShape(0, 0, 8, 4);
-    if (shape == 1) ellipse(0, 0, 10, 10);
+    // Cycle through drawing circle, rectangle, hexagon and triangle
+    if (shape == 0) ellipse(0, 0, 10, 10);
+    if (shape == 1) drawShape(0, 0, 8, 4);
     if (shape == 2) drawShape(0, 0, 7, 6);
     if (shape == 3) drawShape(0, 0, 8, 3);
 
@@ -71,13 +90,19 @@ class Particle {
 
 class ParticleSystem {
   ArrayList<Particle> particles;
-  PVector position;
+  PVector baseAcceleration;
   color baseColor;
+  PVector position;
+  boolean addParticle;
 
   ParticleSystem(int x, int y) {
     particles = new ArrayList<Particle>();
+    baseAcceleration = new PVector(0, 0);
     position = new PVector(x, y);
     baseColor = colorFromCursor();
+
+    addParticle = true;
+    particles.add(new Particle(position, baseAcceleration, baseColor));
   }
 
   void updatePosition(int x, int y) {
@@ -86,13 +111,13 @@ class ParticleSystem {
     baseColor = colorFromCursor();
   }
 
-  void update(PVector acceleration, int currentShape, boolean addShape) {
-    if (addShape)
-      particles.add(new Particle(position, baseColor));
+  void update(int currentShape) {
+    if (addParticle)
+      particles.add(new Particle(position, baseAcceleration, baseColor));
 
-    for (int i = particles.size() - 1; i > 0; i--) {
+    for (int i = particles.size() - 1; i >= 0; i--) {
       Particle p = particles.get(i);
-      p.update(acceleration);
+      p.update();
 
       if (p.dead()) particles.remove(i);
       else p.render(currentShape);
@@ -101,22 +126,21 @@ class ParticleSystem {
 }
 
 class Simulation {
-  ArrayList<ParticleSystem> systems;
   int currentShape;
   PVector acceleration;
-  boolean dieOff;
+  ArrayList<ParticleSystem> systems;
 
   Simulation() {
     systems = new ArrayList<ParticleSystem>();
-    systems.add(new ParticleSystem(0, 0));
-    acceleration = new PVector();
     setGravity(0, 1);
+    addParticleSystem();
     currentShape = 0;
-    dieOff = false;
   }
 
   void addParticleSystem() {
-    systems.add(new ParticleSystem(mouseX, mouseY));
+    ParticleSystem system = new ParticleSystem(mouseX, mouseY);
+    system.baseAcceleration = acceleration;
+    systems.add(system);
   }
 
   void cycleShape() {
@@ -124,16 +148,40 @@ class Simulation {
   }
 
   void setGravity(int directionX, int directionY) {
+    // Change the acceleration for new and existing particles
+    if (acceleration == null) acceleration = new PVector();    
     acceleration.x = 0.02 * directionX;
     acceleration.y = 0.02 * directionY;
+
+    for (ParticleSystem system : systems) {
+      system.baseAcceleration = acceleration;
+      for (Particle particle : system.particles) {
+        particle.acceleration = acceleration;
+      }
+    }
+  }
+  
+  void stopParticleSystems() {
+    // All systems except the one that follows the mouse should stop
+    for (int i = 1; i < systems.size(); i++) {
+      systems.get(i).addParticle = false;
+    }
   }
 
   void update() {
-    for (int i = 0; i < systems.size(); i++) {
+    for (int i = systems.size() - 1; i >= 0; i--) {
       ParticleSystem system = systems.get(i);
-      if (i == 0) // The first particle system is the one that follows the mouse
+
+      if (system.particles.size() == 0) {
+        systems.remove(i); // Remove dead particle system
+      }
+
+      if (i == 0) {
+        // The first particle system is the one that follows the mouse
         system.updatePosition(mouseX, mouseY);
-      system.update(acceleration, currentShape, !dieOff);
+      }
+
+      system.update(currentShape);
     }
   }
 }
@@ -150,7 +198,7 @@ void keyReleased() {
   if (keyCode == DOWN) simulation.setGravity(0, 1);
   if (keyCode == LEFT) simulation.setGravity(-1, 0);
   if (keyCode == RIGHT) simulation.setGravity(1, 0);
-  if (key == 'r' || key == 'R') simulation.dieOff = true;
+  if (key == 'r' || key == 'R') simulation.stopParticleSystems();
 }
 
 void mouseClicked() {
