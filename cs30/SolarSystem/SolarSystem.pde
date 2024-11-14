@@ -36,6 +36,29 @@ class Planet {
     eccentricity = eccentricities[i];
     orbitalPeriod = orbitalPeriods[i];
     diameter = diameters[i];
+    move();
+  }
+
+  int debug(int yOffset) {
+    textSize(20);
+    String[] info = {
+      String.format("%s", name.toString()),
+      String.format("Diameter: %d km", diameter),
+      String.format("Eccentricity: %1.4e", eccentricity),
+      String.format("Semi major axis: %1.4e AU", semiMajorAxis),
+      String.format("Orbital period: %1.4e earth years", orbitalPeriod),
+      String.format("Angle around perihelion %1.4e°", perihelionAngle),
+      String.format("Distance from Sun: %1.4e km", getDistanceFromSun())
+    };
+
+    int size = 13;
+    textSize(size);
+    for (int i = 0; i < info.length; i++) {
+      fill(planetColors[name.ordinal()]);
+      text(info[i], 0, yOffset + (i + 1) * size); 
+    }
+
+    return size * info.length; // Return the total height
   }
 
   float getDistanceFromSun() {
@@ -50,20 +73,29 @@ class Planet {
     perihelionAngle += 1 * 360 / numEarthDays;
   }
 
-  void render(int scale) {
-    float size = diameter / scale;
+  void render(PGraphics orbitTrails, int distanceScale, int diameterScale) {
+    // Draw the planet
+    float theta = radians(perihelionAngle);
+    float distance = getDistanceFromSun() / distanceScale;
+    float x = cos(theta) * distance;
+    float y = sin(theta) * distance;
+    float size = diameter / diameterScale;
     fill(planetColors[name.ordinal()]);
-    ellipse(300, 300, size, size);
+    ellipse(x, y, size, size);
+
+    // Draw the orbit trail
+    // FIXME: why aren't we drawing the trails of the outer planets????
+    float realX = width/2 + x;
+    float realY = height/2 + y;
+    noStroke();
+    fill(color(128, 128, 128, 50));
+    orbitTrails.circle(realX, realY, 3);
   }
 }
 
 Planet[] planets;
-
-void renderTheSun(int scale) {
-  float scaledDiameter = 1391400 / scale;
-  fill(255, 255, 0);
-  ellipse(width/2, height/2, scaledDiameter, scaledDiameter);
-}
+float zoomLevel;
+PGraphics orbitTrails;
 
 void setup() {
   // Load each planet
@@ -71,12 +103,53 @@ void setup() {
   planets = new Planet[names.length];
   for (int i = 0; i < names.length; i++) {
     planets[i] = new Planet(names[i]);
+    for (int j = 0; j < 364; j++) {
+      planets[i].move();
+    }
   }
 
-  size(600, 600);
+  size(1000, 850);
+  zoomLevel = 1;
+  orbitTrails = createGraphics(1000, 850);
+}
+
+void mouseWheel(MouseEvent event) {
+  float direction = event.getCount();
+  if (direction == -1)
+    zoomLevel = max(0.05, zoomLevel - 0.05);
+  if (direction == 1)
+    zoomLevel = min(1.25, zoomLevel + 0.05);
+}
+
+void renderSystem() {
+  pushMatrix();
+  translate(width/2, height/2);
+  scale(zoomLevel);
+
+  image(orbitTrails, -width/2, -height/2);
+
+  // Render the sun
+  float scaledDiameter = 1391400 / 10000;
+  fill(255, 255, 0);
+  ellipse(0, 0, scaledDiameter, scaledDiameter);
+  
+  // Render the planets
+  orbitTrails.beginDraw();
+  for (int i = 0; i < planets.length; i++) {
+    planets[i].render(orbitTrails, 6000000, 750);
+  }
+  orbitTrails.endDraw();
+
+  popMatrix();
 }
 
 void draw() {
   background(0);
-  renderTheSun(10000);
+  renderSystem();
+  int offset = 0;
+  for (int i = 0; i < planets.length; i++) {
+    planets[i].move();
+    int totalHeight = planets[i].debug(offset);
+    offset += totalHeight + 15;
+  }
 }
