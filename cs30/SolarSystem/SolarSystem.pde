@@ -1,6 +1,12 @@
+/*
+Solar System Simulation
+-----------------------
+November 15, 2024
+Abigail Adegbiji
 
-// data taken from here: https://www.princeton.edu/~willman/planetary_systems/Sol/
-enum PlanetName { Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune }
+A basic simulation of the orbits of the planets in the solar system.
+Use the mouse wheel to zoom in and out.
+*/
 
 color[] planetColors = {
   color(92, 92, 92), color(230, 230, 230), color(7, 170, 245),
@@ -8,16 +14,19 @@ color[] planetColors = {
   color(85, 128, 170), color(46, 87, 125)
 };
 
-// semimajor axis in astronomical units
+// Data taken from here: https://www.princeton.edu/~willman/planetary_systems/Sol/
+enum PlanetName { Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune }
+
+// Semimajor axis in astronomical units
 float[] semiMajorAxes = { 0.3870993, 0.723336, 1.000003, 1.52371, 5.2029, 9.537, 19.189, 30.0699 };
 
-// planet eccentricities
+// Planet eccentricities
 float[] eccentricities = { 0.20564, 0.00678, 0.01671, 0.09339, 0.0484, 0.0539, 0.04726, 0.00859 };
 
-// orbital periods in years (number of days in 1 earth year)
+// Orbital periods in years (number of days in 1 earth year)
 float[] orbitalPeriods = { 0.2408467, 0.61519726, 1.0000174, 1.8808158, 11.862615, 29.447498, 84.016846, 164.79132 };
 
-// planet diameters in kilometers, taken from here: https://www.jpl.nasa.gov/_edu/pdfs/scaless_reference.pdf
+// Planet diameters in kilometers, taken from here: https://www.jpl.nasa.gov/_edu/pdfs/scaless_reference.pdf
 int[] diameters = { 4879, 12104, 12756, 6792, 142984, 120536, 51118, 49528 };
 
 class Planet {    
@@ -39,8 +48,8 @@ class Planet {
     move();
   }
 
+  // Draw planetary info
   int debug(int yOffset) {
-    textSize(20);
     String[] info = {
       String.format("%s", name.toString()),
       String.format("Diameter: %d km", diameter),
@@ -84,12 +93,12 @@ class Planet {
     ellipse(x, y, size, size);
 
     // Draw the orbit trail
-    // FIXME: why aren't we drawing the trails of the outer planets????
-    float realX = width/2 + x;
-    float realY = height/2 + y;
+    float realX = orbitTrails.width/2 + x;
+    float realY = orbitTrails.height/2 + y;
+    int radius = name.ordinal() < PlanetName.Jupiter.ordinal() ? 2 : 25;
     noStroke();
     fill(color(128, 128, 128, 50));
-    orbitTrails.circle(realX, realY, 3);
+    orbitTrails.circle(realX, realY, radius);
   }
 }
 
@@ -103,14 +112,14 @@ void setup() {
   planets = new Planet[names.length];
   for (int i = 0; i < names.length; i++) {
     planets[i] = new Planet(names[i]);
-    for (int j = 0; j < 364; j++) {
+    for (int j = 0; j < 365; j++) {
       planets[i].move();
     }
   }
 
-  size(1000, 850);
   zoomLevel = 1;
-  orbitTrails = createGraphics(1000, 850);
+  size(1000, 850);
+  orbitTrails = createGraphics(14000, 14000);
 }
 
 void mouseWheel(MouseEvent event) {
@@ -126,7 +135,10 @@ void renderSystem() {
   translate(width/2, height/2);
   scale(zoomLevel);
 
-  image(orbitTrails, -width/2, -height/2);
+  // TODO: how to scale the mouse position based on the zoom level?
+  int centerX = orbitTrails.width/2;
+  int centerY = orbitTrails.height/2;
+  image(orbitTrails, -centerX, -centerY);
 
   // Render the sun
   float scaledDiameter = 1391400 / 10000;
@@ -136,7 +148,7 @@ void renderSystem() {
   // Render the planets
   orbitTrails.beginDraw();
   for (int i = 0; i < planets.length; i++) {
-    planets[i].render(orbitTrails, 6000000, 750);
+    planets[i].render(orbitTrails, 6400000, 900);
   }
   orbitTrails.endDraw();
 
@@ -146,6 +158,7 @@ void renderSystem() {
 void draw() {
   background(0);
   renderSystem();
+  // Step the simulation
   int offset = 0;
   for (int i = 0; i < planets.length; i++) {
     planets[i].move();
