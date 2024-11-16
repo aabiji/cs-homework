@@ -1,21 +1,21 @@
 /*
 Solar System Simulation
 -----------------------
-November 15, 2024
+November 16, 2024
 Abigail Adegbiji
 
 A basic simulation of the orbits of the planets in the solar system.
 Use the mouse wheel to zoom in and out.
 */
 
+// Data taken from here: https://www.princeton.edu/~willman/planetary_systems/Sol/
+enum PlanetName { Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune }
+
 color[] planetColors = {
   color(92, 92, 92), color(230, 230, 230), color(7, 170, 245),
   color(153, 61, 0), color(176, 127, 53), color(227, 208, 154),
   color(85, 128, 170), color(46, 87, 125)
 };
-
-// Data taken from here: https://www.princeton.edu/~willman/planetary_systems/Sol/
-enum PlanetName { Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune }
 
 // Semimajor axis in astronomical units
 float[] semiMajorAxes = { 0.3870993, 0.723336, 1.000003, 1.52371, 5.2029, 9.537, 19.189, 30.0699 };
@@ -82,29 +82,37 @@ class Planet {
     perihelionAngle += 1 * 360 / numEarthDays;
   }
 
-  void render(PGraphics orbitTrails, int distanceScale, int diameterScale) {
-    // Draw the planet
-    float theta = radians(perihelionAngle);
+  void render(int distanceScale, int diameterScale) {
+    // Find the x and y based on the perihelion angle,
+    // distance from sun and zoom level
+    float size = diameter / diameterScale * zoomLevel;
     float distance = getDistanceFromSun() / distanceScale;
-    float x = cos(theta) * distance;
-    float y = sin(theta) * distance;
-    float size = diameter / diameterScale;
-    fill(planetColors[name.ordinal()]);
-    ellipse(x, y, size, size);
+    float theta = radians(perihelionAngle);
 
-    // Draw the orbit trail
-    float realX = orbitTrails.width/2 + x;
-    float realY = orbitTrails.height/2 + y;
-    int radius = name.ordinal() < PlanetName.Jupiter.ordinal() ? 2 : 25;
-    noStroke();
-    fill(color(128, 128, 128, 50));
-    orbitTrails.circle(realX, realY, radius);
+    float x = width / 2;
+    float y = height / 2;
+    x += cos(theta) * distance * zoomLevel;
+    y += sin(theta) * distance * zoomLevel;
+
+    // Render the planet if we can
+    if (x < width && y < height) {
+      fill(planetColors[name.ordinal()]);
+      circle(x, y, size);
+
+      // Render the distance from sun on hover
+      String info = String.format("%1.4e km from sun", getDistanceFromSun());
+      boolean inCircle = dist(x, y, mouseX, mouseY) < (int)size;
+      if (inCircle) {
+        textSize(15);
+        int w = (int)textWidth(info);
+        text(info, x - w/2, y - size/2);
+      }
+    }
   }
 }
 
 Planet[] planets;
 float zoomLevel;
-PGraphics orbitTrails;
 
 void setup() {
   // Load each planet
@@ -119,50 +127,39 @@ void setup() {
 
   zoomLevel = 1;
   size(1000, 850);
-  orbitTrails = createGraphics(14000, 14000);
 }
 
 void mouseWheel(MouseEvent event) {
   float direction = event.getCount();
   if (direction == -1)
-    zoomLevel = max(0.05, zoomLevel - 0.05);
+    zoomLevel = max(0.05, zoomLevel - 0.02);
   if (direction == 1)
-    zoomLevel = min(1.25, zoomLevel + 0.05);
+    zoomLevel = min(1.50, zoomLevel + 0.02);
 }
 
 void renderSystem() {
-  pushMatrix();
-  translate(width/2, height/2);
-  scale(zoomLevel);
-
-  // TODO: how to scale the mouse position based on the zoom level?
-  int centerX = orbitTrails.width/2;
-  int centerY = orbitTrails.height/2;
-  image(orbitTrails, -centerX, -centerY);
-
   // Render the sun
-  float scaledDiameter = 1391400 / 10000;
   fill(255, 255, 0);
-  ellipse(0, 0, scaledDiameter, scaledDiameter);
-  
+  float diameter = 1391400 / 10000;
+  circle(width/2, height/2, diameter * zoomLevel);
+ 
   // Render the planets
-  orbitTrails.beginDraw();
   for (int i = 0; i < planets.length; i++) {
-    planets[i].render(orbitTrails, 6400000, 900);
+    planets[i].render(6400000, 900);
   }
-  orbitTrails.endDraw();
 
-  popMatrix();
+  // Render the planet info
+  int textY = 0;
+  for (int i = 0; i < planets.length; i++) {
+    textY += planets[i].debug(textY) + 15;
+  }
 }
 
 void draw() {
   background(0);
+
   renderSystem();
-  // Step the simulation
-  int offset = 0;
   for (int i = 0; i < planets.length; i++) {
     planets[i].move();
-    int totalHeight = planets[i].debug(offset);
-    offset += totalHeight + 15;
   }
 }
