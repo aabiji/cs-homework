@@ -2,7 +2,7 @@
 Sorting visualization
 ----------------------------
 Abigail Adegbiji
-November 22, 2024
+November 28, 2024
 
 Selection sort compute time:
 Input size        | Computation Time
@@ -12,32 +12,28 @@ Input size        | Computation Time
 100,000           | 13331 ms
 1,000,000         | 139492 ms
 100,000,000       | 
-4,508,228,571,430 | 365.25 days
+??                | 365.25 days
 
-365.25 days = 31,557,600,000 ms. It takes 7 ms
-to sort 1000 ints so can sort 31557600000 / 7 = 4508228571.43
-groups of 1000 ints in 1 year. In total, we can sort
-4508228571.43 * 1000 = 4,508,228,571,430 ints in 1 year.
+TODO: recompute and get system info
+
+The equation that describes the time values:
+y = 31536x2 - 114502x + 87951
+365.25 days = 31,557,600,000 ms. Plug it into the equation:
+y = 31536(31557600000)^2 - 114502(31557600000) + 87951
+y = 3.1406138e+25
+So, sorting 3.1406138e+25 ints would take 1 year.
 */
 
-int[] selectionSort(int[] values, boolean debug) {
+// Reference selection sort implementation
+int[] selectionSort(int[] values) {
   int[] arr = values.clone();
-  int iterations = 0, comparisons = 0, swaps = 0;
-
-  // Go through the array in 1 pass
-  // O(n) to iterate the whole array, O(n) again to
-  // find the smallest value. O(n) * O(n) = O(n ^ 2)
-  // time complexity, so the algorithm is not very efficient.
   for (int i = 0; i < arr.length; i++) {
-    iterations++;
     int num = arr[i];
 
     // Find the smallest value after this point in the array
     int smallestIndex = 0;
     int smallest = Integer.MAX_VALUE;
     for (int j = i; j < arr.length; j++) {
-      iterations++;
-      comparisons++;
       if (arr[j] < smallest) {
         smallest = arr[j];
         smallestIndex = j;
@@ -45,17 +41,11 @@ int[] selectionSort(int[] values, boolean debug) {
     }
 
     // Swap the current value and the smallest value if needed
-    comparisons++;
     if (smallest < num) {
       arr[i] = arr[smallestIndex];
       arr[smallestIndex] = num;
-      swaps++;
     }
   }
-
-  if (debug)
-    System.out.printf("%d iterations, %d comparisons %d swaps\n", iterations, comparisons, swaps);
-
   return arr;
 }
 
@@ -66,26 +56,123 @@ void profileSorting(int amount) {
   }
 
   int timeBefore = millis();
-  selectionSort(values, true);
+  selectionSort(values);
   int timeAfter = millis();
-  System.out.printf("Compute time: %d ms", timeAfter - timeBefore);
+  System.out.printf("Time: %d ms", timeAfter - timeBefore);
 }
 
-int[] values = new int[50];
+int[] values;
+int currentIndex;
+
+int smallestIndex;
+int smallestValue;
+boolean swapping;
+
+int iterations;
+int comparisons;
+int swaps;
+
+color base1 = color(209, 209, 209);
+color base2 = color(28, 92, 61);
+color highlight1 = color(59, 156, 56);
+color highlight2 = color(196, 45, 45);
+color transparent = color(255, 255, 255, 0);
 
 void setup() {
-  size(600, 600);
-  profileSorting(100000000);
+  size(600, 400);
+  textSize(20);
 
+  swapping = false;
+  currentIndex = -1;
+  smallestIndex = 0;
+  smallestValue = 0;
+  iterations = 0;
+  comparisons = 0;
+  swaps = 0;
+
+  values = new int[30];
   for (int i = 0; i < values.length; i++) {
     values[i] = (int)random(0, 100);
-  } //<>//
+  }
+}
+
+void drawValue(int i, int n, color c) {
+  float h = n * 2.5;
+  float w = width / values.length;
+  if (alpha(c) == 0) {
+    fill(255, 255, 255);
+    stroke(255);
+  } else {
+    fill(c);
+    stroke(0);
+  }
+  rect(i * w, height - h, w, h);
+}
+
+void visualizeSelection() {
+  iterations++;
+  ++currentIndex;
+
+  // Find the smallest value after this point in the array
+  smallestIndex = 0;
+  smallestValue = Integer.MAX_VALUE;
+  for (int j = currentIndex; j < values.length; j++) {
+    iterations++;
+    comparisons++;
+    if (values[j] < smallestValue) {
+      smallestValue = values[j];
+      smallestIndex = j;
+    }
+  }
+
+  if (smallestValue < values[currentIndex]) {
+    comparisons++;
+    swapping = true;
+
+    // Hightlight the 2 values we'll swaps
+    drawValue(currentIndex, values[currentIndex], highlight1);
+    drawValue(smallestIndex, smallestValue, highlight2);
+  }
+}
+
+void visualizeSwap() {
+  swaps++;
+  swapping = false;
+
+  // Clear the previously highlighted values
+  drawValue(currentIndex, values[currentIndex], transparent);
+  drawValue(smallestIndex, values[smallestIndex], transparent);
+
+  // Swap
+  int n = values[currentIndex];
+  values[currentIndex] = values[smallestIndex];
+  values[smallestIndex] = n;
+
+  // Draw the swapped values
+  drawValue(currentIndex, values[currentIndex], highlight2);
+  drawValue(smallestIndex, values[smallestIndex], highlight1);
 }
 
 void draw() {
   background(255);
+
+  String info = String.format("%d iterations, %d comparisons %d swaps\n", iterations, comparisons, swaps);
+  String str = currentIndex == values.length ? info : "Sorting...";
+  fill(0, 0, 0);
+  text(str, 0, 20);
+
   for (int i = 0; i < values.length; i++) {
-    float h = values[i] * 2.5;
-    rect(i * 20, height - h, 20, h);
+    color c = i < currentIndex ? base2 : base1;
+    drawValue(i, values[i], c);
+  }
+
+  if (currentIndex < values.length) {
+    // We're splitting the algorithm in two parts
+    // so they can be visualized on separate frames
+    if (swapping)
+      visualizeSwap();
+    else
+      visualizeSelection();
+    delay(500);
   }
 }
