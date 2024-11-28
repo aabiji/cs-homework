@@ -8,14 +8,32 @@ Selection sort compute time:
 Input size        | Computation Time
 ------------------|-----------------
 1000              | 7 ms
-10,000            | 26 ms
-100,000           | 13331 ms
-1,000,000         | 139492 ms
-100,000,000       | 
-??                | 365.25 days
+10,000            | 19 ms
+100,000           | 1408 ms
+1,000,000         | 148620 ms
 
-TODO: recompute and get system info
-
+            .-/+oossssoo+/-.               aabiji@thinkpad 
+        `:+ssssssssssssssssss+:`           --------------- 
+      -+ssssssssssssssssssyyssss+-         OS: Ubuntu 24.10 x86_64 
+    .ossssssssssssssssssdMMMNysssso.       Host: 20ARS1VL00 ThinkPad T440s 
+   /ssssssssssshdmmNNmmyNMMMMhssssss/      Kernel: 6.11.0-9-generic 
+  +ssssssssshmydMMMMMMMNddddyssssssss+     Uptime: 5 hours, 51 mins 
+ /sssssssshNMMMyhhyyyyhmNMMMNhssssssss/    Packages: 2156 (dpkg), 13 (snap) 
+.ssssssssdMMMNhsssssssssshNMMMdssssssss.   Shell: zsh 5.9 
++sssshhhyNMMNyssssssssssssyNMMMysssssss+   Resolution: 1366x768 
+ossyNMMMNyMMhsssssssssssssshmmmhssssssso   DE: GNOME 47.0 
+ossyNMMMNyMMhsssssssssssssshmmmhssssssso   WM: Mutter 
++sssshhhyNMMNyssssssssssssyNMMMysssssss+   WM Theme: Adwaita 
+.ssssssssdMMMNhsssssssssshNMMMdssssssss.   Theme: Yaru-blue [GTK2/3] 
+ /sssssssshNMMMyhhyyyyhdNMMMNhssssssss/    Icons: Yaru-blue [GTK2/3] 
+  +sssssssssdmydMMMMMMMMddddyssssssss+     Terminal: kitty 
+   /ssssssssssshdmNNNNmyNMMMMhssssss/      CPU: Intel i7-4600U (4) @ 3.300GHz 
+    .ossssssssssssssssssdMMMNysssso.       GPU: Intel Haswell-ULT 
+      -+sssssssssssssssssyyyssss+-         Memory: 1892MiB / 7120MiB 
+        `:+ssssssssssssssssss+:`
+            .-/+oossssoo+/-.                                       
+                                                                   
+TODO: find better equation
 The equation that describes the time values:
 y = 31536x2 - 114502x + 87951
 365.25 days = 31,557,600,000 ms. Plug it into the equation:
