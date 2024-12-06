@@ -1,4 +1,5 @@
 import java.lang.Math;
+import java.util.ArrayList;
 
 // A complex number is of the form a + bi, where a is the real part,
 // We can use a single complex number to represent a (x, y) coordinate
@@ -16,14 +17,14 @@ class Complex {
     this.real = a;
     this.imag = 0;
   }
-  
+
   Complex reciprocal() {
     double scale = real * real + imag * imag;
     return new Complex(real / scale, -imag / scale);
   }
-  
+
   double abs() {
-    return Math.hypot(real, imag); 
+    return Math.hypot(real, imag);
   }
 }
 
@@ -43,77 +44,110 @@ Complex div(Complex a, Complex b) {
   return mul(a, b.reciprocal());
 }
 
-Complex sqrt(Complex a) {
-  double real = Math.sqrt((a.abs() + a.real) / 2);
-  double imag = (a.imag / Math.abs(a.imag)) * Math.sqrt((a.abs() - a.real) / 2);
-  return new Complex(real, imag);
+// Since sqrt gives us +/-, sign is used to
+// choose one of the 2 possible answers
+Complex sqrt(Complex a, int sign) {
+  // Find the sqrt by using the polar form of the complex number
+  double theta = Math.atan2(a.imag, a.real);
+  double sqrt = Math.sqrt(a.abs()); // sqrt of modulus
+
+  double real = sqrt * Math.cos(theta / 2);
+  double imag = sqrt * Math.sin(theta / 2);
+  return new Complex(real * sign, imag * sign);
 }
 
 // Use Descartes theorem to find the curvature of
 // the 4th circle from the curvatures of 3 other circles
-double findCurvature(double k1, double k2, double k3) {
+// Since the equation is quadratic, sign is used to
+// choose one of the 2 possible answers
+double findCurvature(double k1, double k2, double k3, int sign) {
   double x = k1 + k2 + k3;
-  double y = 2 * Math.sqrt(k1*k2 + k2*k3 + k3*k1);
+  double y = sign * 2 * Math.sqrt(k1*k2 + k2*k3 + k3*k1);
   return x + y;
 }
 
-// Use the Complex Descartes theorem to find the radius of a 4th circle from
-// the curvatures of 4 other circles and the positions of 3 other circles
-Complex findCenter(Complex z1, Complex k1, Complex z2, Complex k2, Complex z3, Complex k3, Complex k4) {
+// Use the Complex Descartes theorem to find the
+// radius of a 4th circle from. The curvatures of 4
+// circles (k) and the positions of 3 circles (z)
+// Since the equation is quadratic, sign is used to
+// choose one of the 2 possible answers
+Complex findCenter(
+  Complex z1, Complex k1,
+  Complex z2, Complex k2,
+  Complex z3, Complex k3,
+  Complex k4, int sign
+) {
   Complex a = add(add(mul(z1, k1), mul(z2, k2)), mul(z3, k3));
   Complex b = mul(mul(k1, k2), mul(z1, z2));
   Complex c = mul(mul(k2, k3), mul(z2, z3));
   Complex d = mul(mul(k1, k3), mul(z1, z3));
-  Complex e = sqrt(add(add(b, c), d));
+  Complex e = sqrt(add(add(b, c), d), sign);
   Complex f = add(a, mul(new Complex(2), e));
   return div(f, k4);
 }
 
 class Circle {
   Complex center;
-  Complex curvature;
+  double curvature;
   float radius;
 
-  Circle(float x, float y, int radius) {
+  Circle(double x, double y, int radius) {
     this.center = new Complex(x, y);
-    this.curvature = new Complex(1.0 / radius);
+    this.curvature = 1.0 / radius;
     this.radius = radius;
   }
 
   // Determine a circle from 3 other circles
-  Circle(Circle a, Circle b, Circle c) {
-    this.curvature = new Complex(findCurvature(a.curvature.real, b.curvature.real, c.curvature.real));
-    this.radius = (float)(1.0 / this.curvature.real);
-    this.center =
-        findCenter(a.center, a.curvature, b.center, b.curvature, c.center, c.curvature, this.curvature);
-  }
-
-  void render() {
-    circle((float)this.center.real, (float)this.center.imag, this.radius); 
+  // sign determines whether the new circle is inside (+1) or surrounding (-1) the 3 circles
+  Circle(Circle a, Circle b, Circle c, int sign) {
+    this.curvature = findCurvature(a.curvature, b.curvature, c.curvature, sign);
+    this.radius = (float)(1.0 / this.curvature);
+    this.center = findCenter(
+      a.center, new Complex(a.curvature),
+      b.center, new Complex(b.curvature),
+      c.center, new Complex(c.curvature),
+      new Complex(this.curvature), sign
+    );
   }
 }
 
-Circle circle1;
-Circle circle2;
-Circle circle3;
-Circle circle4;
+ArrayList<Circle> circles;
+
+void step() {
+  int len = circles.size();
+  for (int i = 0; i < len; i++) {
+    for (int j = i + 1; j < len; j++) {
+      for (int l = j + 1; l < len; l++) {
+        circles.add(new Circle(circles.get(i), circles.get(j), circles.get(l), 1));
+        circles.add(new Circle(circles.get(i), circles.get(j), circles.get(l),-1));
+      }
+    }
+  }
+}
 
 void setup() {
   size(600, 600);
 
-  float x = width/2.5;
-  float y = height/2.5;
-  float r = 100;
-  circle1 = new Circle(x, y, 100);
-  circle2 = new Circle(x+r, y, 100);
-  circle3 = new Circle(x+r/2, y+r-15, 100);
-  circle4 = new Circle(circle1, circle2, circle3);
+  // Add the initial circles
+  int r = 100;
+  double cx = width / 2;
+  double cy = height / 2;
+  circles = new ArrayList<Circle>();
+  circles.add(new Circle(cx-r, cy, r));
+  circles.add(new Circle(cx+r, cy, r));
+  // The 3rd circle should be at the apex of equilateral
+  // triangle formed by the first 2 circles. The height
+  // of the equalateral triangle is radius * sqrt(3)
+  circles.add(new Circle(cx, cy + r * Math.sqrt(3), r));
+
+  step();
+  step();
 }
 
 void draw() {
   background(255);
-  circle1.render();
-  circle2.render();
-  circle3.render();
-  circle4.render();
+  fill(0, 0, 0, 0);
+  for (Circle c : circles) {
+    circle((float)c.center.real, (float)c.center.imag, c.radius * 2);
+  }
 }
