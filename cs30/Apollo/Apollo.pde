@@ -26,6 +26,10 @@ class Complex {
   double abs() {
     return Math.hypot(real, imag);
   }
+  
+  String fmt() {
+    return String.format("(%f, %f)", real, imag);
+  }
 }
 
 Complex add(Complex a, Complex b) {
@@ -42,6 +46,10 @@ Complex mul(Complex a, Complex b) {
 
 Complex div(Complex a, Complex b) {
   return mul(a, b.reciprocal());
+}
+
+Complex scale(Complex a, double b) {
+  return new Complex(a.real * b, a.imag * b);
 }
 
 // Since sqrt gives us +/-, sign is used to
@@ -72,18 +80,18 @@ double findCurvature(double k1, double k2, double k3, int sign) {
 // Since the equation is quadratic, sign is used to
 // choose one of the 2 possible answers
 Complex findCenter(
-  Complex z1, Complex k1,
-  Complex z2, Complex k2,
-  Complex z3, Complex k3,
-  Complex k4, int sign
+  Complex z1, double k1,
+  Complex z2, double k2,
+  Complex z3, double k3,
+  double k4, int sign
 ) {
-  Complex a = add(add(mul(z1, k1), mul(z2, k2)), mul(z3, k3));
-  Complex b = mul(mul(k1, k2), mul(z1, z2));
-  Complex c = mul(mul(k2, k3), mul(z2, z3));
-  Complex d = mul(mul(k1, k3), mul(z1, z3));
+  Complex a = add(add(scale(z1, k1), scale(z2, k2)), scale(z3, k3));
+  Complex b = scale(mul(z1, z2), k1 * k2);
+  Complex c = scale(mul(z2, z3), k2 * k3);
+  Complex d = scale(mul(z1, z3), k1 * k3);
   Complex e = sqrt(add(add(b, c), d), sign);
   Complex f = add(a, mul(new Complex(2), e));
-  return div(f, k4);
+  return scale(f, 1/k4);
 }
 
 class Circle {
@@ -103,10 +111,10 @@ class Circle {
     this.curvature = findCurvature(a.curvature, b.curvature, c.curvature, sign);
     this.radius = (float)(1.0 / this.curvature);
     this.center = findCenter(
-      a.center, new Complex(a.curvature),
-      b.center, new Complex(b.curvature),
-      c.center, new Complex(c.curvature),
-      new Complex(this.curvature), sign
+      a.center, a.curvature,
+      b.center, b.curvature,
+      c.center, c.curvature,
+      this.curvature, sign
     );
   }
 }
@@ -125,29 +133,78 @@ void step() {
   }
 }
 
+/*
+https://www.mitchr.me/SS/AGasket/index.html
+
+require 'cmath'
+
+def newCircles (circle1, circle2, circle3)
+  k1, k2, k3 = circle1[0], circle2[0], circle3[0]
+  c1, c2, c3 = circle1[1], circle2[1], circle3[1]
+  # Compute the inner and outer circle radius
+  tmp1 = k1+k2+k3
+  tmp2 = 2*Math::sqrt(k1*k2+k2*k3+k3*k1)
+  iRad = tmp1+tmp2
+  oRad = tmp1-tmp2
+  if(iRad < oRad) then
+    iRad, oRad = oRad, iRad
+  end
+  # Compute the coordinates
+  tmp1 = c1*k1+c2*k2+c3*k3
+  tmp2 = 2*CMath::sqrt(k1*k2*c1*c2+k2*k3*c2*c3+k3*k1*c1*c3)
+
+  circles = [ [iRad, (tmp1+tmp2)/iRad ],
+              [oRad, (tmp1-tmp2)/oRad ]
+            ]
+  return circles  
+end
+
+r1 = 1.0
+r2 = 1.0
+r3 = 1.0
+tmp = (r1*r1+r1*r3+r1*r2-r2*r3)/(r1+r2)
+circle1 = [ 1/r1, Complex(    0,                             0) ]
+circle2 = [ 1/r2, Complex(r1+r2,                             0) ]
+circle3 = [ 1/r3, Complex(  tmp, Math::sqrt((r1+r3)**2-tmp**2)) ]
+print(newCircles(circle1, circle2, circle3))
+
+Output:
+[
+  [6.464101615137754, (1.0+0.5773502691896257i)], # inner circle (curvature, center)
+  [-0.4641016151377544, (1.0+0.5773502691896262i)] # outer circle (curvature, center)
+]
+*/
+
 void setup() {
   size(600, 600);
 
   // Add the initial circles
-  int r = 100;
-  double cx = width / 2;
-  double cy = height / 2;
+  int r = 1;
   circles = new ArrayList<Circle>();
-  circles.add(new Circle(cx-r, cy, r));
-  circles.add(new Circle(cx+r, cy, r));
+  circles.add(new Circle(0, 0, r));
+  circles.add(new Circle(r+r, 0, r));
   // The 3rd circle should be at the apex of equilateral
   // triangle formed by the first 2 circles. The height
   // of the equalateral triangle is radius * sqrt(3)
-  circles.add(new Circle(cx, cy + r * Math.sqrt(3), r));
+  double h = (r * 2 * Math.sqrt(3)) / 2;
+  circles.add(new Circle(r, h, r));
 
   step();
-  step();
+
+  Circle inner = circles.get(3);
+  Circle outer = circles.get(4);
+  println(inner.curvature, inner.center.fmt());
+  println(outer.curvature, outer.center.fmt());
 }
 
 void draw() {
   background(255);
+  ellipseMode(RADIUS);
   fill(0, 0, 0, 0);
   for (Circle c : circles) {
-    circle((float)c.center.real, (float)c.center.imag, c.radius * 2);
+    float r = Math.abs(c.radius) * 100;
+    float x = (float)c.center.real + width/2;
+    float y = (float)c.center.imag + height/2;
+    ellipse(x, y, r, r);
   }
 }
