@@ -1,10 +1,8 @@
 /*
-Finally working! :)
-
 TODO:
-- Draw in 3d (draw like you would in 2d, just use spheres instead and a camera you can rotate)
-- Comment the fractal's production rules
-- Write a blog post about this since there aren't great ressources on this
+- Production rules, but applied in 3D
+- Variability and randomness included in the branching
+- Incorporation of light(s) into the scene
 */
 
 import java.util.HashMap;
@@ -90,6 +88,16 @@ Complex[] getCenters(Circle c1, Circle c2, Circle c3, float k4) {
   return solution;
 }
 
+// Return true if the 2 circles are all tangent to each other
+// There are 2 cases, 1 where the first circle is inside the second
+// circle and one where the circles are right next to each other
+boolean tangencial(Circle c1, Circle c2) {
+  float epsilon = 0.1;
+  float distance = dist(c1.center.real, c1.center.imaginary, c2.center.real, c2.center.imaginary);
+  float r1 = c1.radius, r2 = c2.radius;
+  return Math.abs(distance - (r1 + r2)) < epsilon || Math.abs(distance - Math.abs(r2 - r1)) < epsilon;
+}
+
 // Get all of the 4 possible new circles from 3 circles
 Circle[] getNewCircles(Circle c1, Circle c2, Circle c3) {
   int index = 0;
@@ -105,24 +113,15 @@ Circle[] getNewCircles(Circle c1, Circle c2, Circle c3) {
   return circles;
 }
 
-// Return true if the 2 circles are all tangent to each other
-// There are 2 cases, 1 where the first circle is inside the second
-// circle and one where the circles are right next to each other
-boolean tangencial(Circle c1, Circle c2) {
-  float epsilon = 0.1;
-  float distance = dist(c1.center.real, c1.center.imaginary, c2.center.real, c2.center.imaginary);
-  float r1 = c1.radius, r2 = c2.radius;
-  return (distance - (r1 + r2)) < epsilon || (distance - Math.abs(r2 - r1)) < epsilon;
-}
-
 HashMap<String, Circle> circles;
 
 // Recursively generate new circles from triplets of circles
 void generateGasket(Circle c1, Circle c2, Circle c3, int depth) {
-  if (depth < 0) return;
+  if (depth <= 0) return;
 
   Circle[] newCircles = getNewCircles(c1, c2, c3);
   for (Circle c : newCircles) {
+    if (c.radius < 3) continue; // Too small
     if (circles.get(c.key()) != null)
       continue; // Ignore duplicate circles
     if (!tangencial(c, c1) || !tangencial(c, c2) || !tangencial(c, c3))
@@ -135,9 +134,48 @@ void generateGasket(Circle c1, Circle c2, Circle c3, int depth) {
   }
 }
 
-void setup() {
-  size(600, 600);
+// Basic camera to rotate around the origin (0, 0, 0)
+class Camera {
+  float distance;
+  PVector rotation;
 
+  Camera() {
+    distance = 500;
+    rotation = new PVector(270, 0);
+  }
+
+  void updateRotation() {
+    float sensitivity = 0.5;
+    float deltaX = (mouseX - pmouseX) * sensitivity;
+    float deltaY = (mouseY - pmouseY) * sensitivity;
+
+    rotation.x = (rotation.x + deltaX) % 360;
+    // Clamp the y rotation to prevent gimbal lock
+    // We could just use a rotation matrix instead of
+    // Euler's angles (roll, pitch, yaw), but meh
+    rotation.y = constrain(rotation.y + deltaY, -89, 89);
+  }
+
+  void zoom(float direction) {
+    distance = distance + direction * 20;
+    distance = constrain(distance, 200, 1000);
+  }
+
+  void set() {
+    // Calculate the camera position. You could visualize this as
+    // rotating around a circle on the xy plane with the z axis looking downwards
+    float x = distance * cos(radians(rotation.x)) * cos(radians(rotation.y));
+    float y = distance * sin(radians(rotation.y));
+    float z = distance * sin(radians(rotation.x)) * cos(radians(rotation.y));
+    camera(x, y, z, 0, 0, 0, 0, 1, 0);
+  }
+}
+
+Camera camera;
+
+void setup() {
+  size(600, 600, P3D);
+  /*
   Circle c1 = new Circle(new Complex(200, 200), -1.0/200);
   Circle c2 = new Circle(new Complex(100, 200), 1.0/100);
   Circle c3 = new Circle(new Complex(300, 200), 1.0/100);
@@ -146,11 +184,25 @@ void setup() {
   circles.put(c2.key(), c2);
   circles.put(c3.key(), c3);
   generateGasket(c1, c2, c3, 3);
+  */
+  camera = new Camera();
+}
+
+void mouseWheel(MouseEvent event) {
+  camera.zoom(event.getCount());
 }
 
 void draw() {
-  background(255);
-  for (String key : circles.keySet()) {
-    circles.get(key).draw();
-  }
+  background(0);
+  noStroke(); // remove wireframe
+  lights();
+
+  camera.updateRotation();
+  camera.set();
+
+  pushMatrix();
+  translate(0, 0, 0);
+  fill(255);
+  box(100);
+  popMatrix();
 }
