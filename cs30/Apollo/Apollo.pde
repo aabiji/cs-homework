@@ -192,17 +192,31 @@ void mouseWheel(MouseEvent event) {
   camera.zoom(event.getCount());
 }
 
+void setLights() {
+  ambientLight(222, 217, 226);
+  lightFalloff(1, 0, 0);
+  lightSpecular(0, 0, 0);
+
+  // Put directional light in front and behind
+  directionalLight(200, 200, 200, 0, 0, -1);
+  directionalLight(200, 200, 200, 0, 0, 1);
+
+  // Put point light in front and on top
+  pointLight(255, 255, 255, 0, 1, -1);
+  pointLight(255, 255, 255, 0, 0, -1);
+}
+
 void draw() {
   background(0);
   noStroke(); // remove wireframe
-  lights();
 
+  setLights();
   camera.updateRotation();
   camera.set();
 
   pushMatrix();
   translate(0, 0, 0);
-  fill(255);
+  fill(255, 0, 0);
   box(100);
   popMatrix();
 }
