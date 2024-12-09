@@ -1,11 +1,9 @@
-/*
+/* //<>//
 TODO:
 - Production rules, but applied in 3D
 - Variability and randomness included in the branching
-- Incorporation of light(s) into the scene
 */
-
-import java.util.HashMap;
+import java.util.ArrayList;
 
 class Complex {
   float real;
@@ -54,16 +52,6 @@ class Circle {
     this.curvature = curvature;
     this.radius = Math.abs(1/curvature);
   }
-
-  String key() {
-    return String.format("%f+%fi, %f, %f", center.real, center.imaginary, curvature, radius);
-  }
-
-  void draw() {
-    stroke(0);
-    noFill();
-    circle(center.real, center.imaginary, radius * 2);
-  }
 }
 
 // Use descartes theorem to get the 2 possible curvatures
@@ -88,16 +76,6 @@ Complex[] getCenters(Circle c1, Circle c2, Circle c3, float k4) {
   return solution;
 }
 
-// Return true if the 2 circles are all tangent to each other
-// There are 2 cases, 1 where the first circle is inside the second
-// circle and one where the circles are right next to each other
-boolean tangencial(Circle c1, Circle c2) {
-  float epsilon = 0.1;
-  float distance = dist(c1.center.real, c1.center.imaginary, c2.center.real, c2.center.imaginary);
-  float r1 = c1.radius, r2 = c2.radius;
-  return Math.abs(distance - (r1 + r2)) < epsilon || Math.abs(distance - Math.abs(r2 - r1)) < epsilon;
-}
-
 // Get all of the 4 possible new circles from 3 circles
 Circle[] getNewCircles(Circle c1, Circle c2, Circle c3) {
   int index = 0;
@@ -113,25 +91,53 @@ Circle[] getNewCircles(Circle c1, Circle c2, Circle c3) {
   return circles;
 }
 
-HashMap<String, Circle> circles;
+// Return true if the 2 circles are all tangent to each other
+// There are 2 cases, 1 where the first circle is inside the second
+// circle and one where the circles are right next to each other
+boolean tangencial(Circle c1, Circle c2) {
+  float epsilon = 0.1;
+  float distance = dist(c1.center.real, c1.center.imaginary, c2.center.real, c2.center.imaginary);
+  float r1 = c1.radius, r2 = c2.radius;
+  return Math.abs(distance - (r1 + r2)) < epsilon || Math.abs(distance - Math.abs(r2 - r1)) < epsilon;
+}
+
+boolean alreadyGenerated(ArrayList<Circle> circles, Circle c) {
+  for (Circle other : circles) {
+    float distance = dist(c.center.real, c.center.imaginary, other.center.real, other.center.imaginary);
+    if (distance < 0.1) return true; // Already generated the circle
+  }
+  return false;
+}
 
 // Recursively generate new circles from triplets of circles
-void generateGasket(Circle c1, Circle c2, Circle c3, int depth) {
+void generateGasket(ArrayList<Circle> circles, Circle c1, Circle c2, Circle c3, int depth) {
   if (depth <= 0) return;
 
   Circle[] newCircles = getNewCircles(c1, c2, c3);
   for (Circle c : newCircles) {
-    if (c.radius < 3) continue; // Too small
-    if (circles.get(c.key()) != null)
-      continue; // Ignore duplicate circles
+    if (c.radius < 3 || alreadyGenerated(circles, c)) continue;
     if (!tangencial(c, c1) || !tangencial(c, c2) || !tangencial(c, c3))
       continue; // Descartes theorem only works with tangencial circles
-
-    circles.put(c.key(), c);
-    generateGasket(c1, c2, c, depth - 1);
-    generateGasket(c2, c3, c, depth - 1);
-    generateGasket(c1, c3, c, depth - 1);
+    circles.add(c);
+    generateGasket(circles, c1, c2, c, depth - 1);
+    generateGasket(circles, c2, c3, c, depth - 1);
+    generateGasket(circles, c1, c3, c, depth - 1);
   }
+}
+
+// Get a random configuration of 3 mutally tangent circles
+Circle[] getInitialCircles() {
+  Circle[] circles = new Circle[3];
+
+  float r1 = random(200, 400);
+  circles[0] = new Circle(new Complex(0, 0), -1.0 / r1);
+
+  float r2 = random(20, r1 / 2);
+  PVector vector = new PVector(random(0, 1), random(0, 1));
+  vector.setMag(r1 - r2);
+  circles[1] = new Circle(new Complex(-vector.x, vector.y), r2);
+
+  return circles;
 }
 
 // Basic camera to rotate around the origin (0, 0, 0)
@@ -172,20 +178,18 @@ class Camera {
 }
 
 Camera camera;
+String outerCircle;
+ArrayList<Circle> circles;
 
 void setup() {
   size(600, 600, P3D);
-  /*
-  Circle c1 = new Circle(new Complex(200, 200), -1.0/200);
-  Circle c2 = new Circle(new Complex(100, 200), 1.0/100);
-  Circle c3 = new Circle(new Complex(300, 200), 1.0/100);
-  circles = new HashMap<String, Circle>();
-  circles.put(c1.key(), c1);
-  circles.put(c2.key(), c2);
-  circles.put(c3.key(), c3);
-  generateGasket(c1, c2, c3, 3);
-  */
+
   camera = new Camera();
+
+  circles = new ArrayList<Circle>();
+  Circle[] set = getInitialCircles();
+  java.util.Collections.addAll(circles, set);
+  generateGasket(circles, set[0], set[1], set[2], 3);
 }
 
 void mouseWheel(MouseEvent event) {
@@ -206,17 +210,58 @@ void setLights() {
   pointLight(255, 255, 255, 0, 0, -1);
 }
 
+void drawCylinder(int sides, float radius, float tall) {
+  float angle = 360.0 / sides;
+  float halfHeight = tall / 2;
+
+  // Top
+  beginShape();
+  for (int i = 0; i < sides; i++) {
+    float x = cos(radians(i * angle)) * radius;
+    float y = sin(radians(i * angle)) * radius;
+    vertex(x, y, -halfHeight);
+  }
+  endShape(CLOSE);
+
+  // Bottom
+  beginShape();
+  for (int i = 0; i < sides; i++) {
+    float x = cos(radians(i * angle)) * radius;
+    float y = sin(radians(i * angle)) * radius;
+    vertex(x, y, halfHeight);
+  }
+  endShape(CLOSE);
+
+  // Middle part
+  beginShape(TRIANGLE_STRIP);
+  for (int i = 0; i <= sides; i++) {
+    float x = cos(radians(i * angle)) * radius;
+    float y = sin(radians(i * angle)) * radius;
+    vertex(x, y, -halfHeight);
+    vertex(x, y, halfHeight);
+  }
+  endShape(CLOSE);
+}
+
 void draw() {
   background(0);
-  noStroke(); // remove wireframe
+  noStroke();
 
   setLights();
   camera.updateRotation();
   camera.set();
 
-  pushMatrix();
-  translate(0, 0, 0);
-  fill(255, 0, 0);
-  box(100);
-  popMatrix();
+  // Draw the gasket
+  for (int i = 0; i < circles.size(); i++) {
+    Circle circle = circles.get(i);
+    color c = i == 0 ? color(0, 0, 0) : color(255, 0, 0);
+    float z = 0.01 * i; // Slightly offset the depths to avoid z-fighting
+    int depth = i == 0 ? 15 : 20;
+
+    pushMatrix();
+    translate(circle.center.real, circle.center.imaginary, z);
+    fill(c);
+    drawCylinder(50, circle.radius, depth);
+    popMatrix();
+  }
 }
