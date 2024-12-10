@@ -6,8 +6,6 @@ December 10, 2024
 
 A program to visualize an Apollonian gasket in 3d.
 
-TODO: fix lightling ask question about extending to 3d and done!
-
 Ressources:
 - https://www.youtube.com/watch?v=6UlGLB_jiCs
 - https://en.wikipedia.org/wiki/Descartes%27_theorem
@@ -124,7 +122,7 @@ boolean tangencial(Circle c1, Circle c2) {
 boolean alreadyGenerated(ArrayList<Circle> circles, Circle c) {
   for (Circle other : circles) {
     float distance = dist(c.center.real, c.center.imaginary, other.center.real, other.center.imaginary);
-    if (distance < 0.1) return true; // Both circles have the same position
+    if (distance < 0.5) return true; // Both circles have the same position
   }
   return false;
 }
@@ -152,12 +150,12 @@ Circle[] getInitialCircles() {
   Circle[] circles = new Circle[3];
 
   // Random circle radii
-  float r1 = random(100, 400);
-  float r2 = random(20, r1 / 2);
-  float r3 = r1 - r2;
+  int r1 = (int)random(100, 400);
+  int r2 = (int)random(r1/2 - 10, r1/2+1);
+  int r3 = r1 - r2;
 
   // Random unit vector
-  PVector vector = new PVector(random(0, 1), random(0, 1));
+  PVector vector = PVector.random2D();
 
   // Outer circle
   circles[0] = new Circle(new Complex(0, 0), -1.0 / r1);
@@ -174,7 +172,7 @@ Circle[] getInitialCircles() {
   return circles;
 }
 
-// Basic camera to rotate around the origin (0, 0, 0)
+// Basic camera to rotate around the origin (0, 0, 0) using the mouse
 class Camera {
   float distance;
   PVector rotation;
@@ -218,19 +216,20 @@ void setup() {
 
   camera = new Camera();
 
-  circles = new ArrayList<Circle>();
-  Circle[] set = getInitialCircles();
-  java.util.Collections.addAll(circles, set);
-  generateGasket(circles, set[0], set[1], set[2], 10);
+  // Only generate a developped gasket
+  do {
+    int depth = (int)random(5, 10);
+    circles = new ArrayList<Circle>();
+    Circle[] set = getInitialCircles();
+    java.util.Collections.addAll(circles, set);
+    generateGasket(circles, set[0], set[1], set[2], depth);
+  } while (circles.size() == 3);
 
   // Assign each circle it's own color
-  color[] palette = {
-    color(252, 239, 239), color(127, 216, 190),
-    color(161, 252, 223),color(252, 210, 159)
-  };
+  color[] palette = { color(251, 254, 249), color(12, 98, 145), color(166, 52, 70) };
   colors = new color[circles.size()];
   for (int i = 0; i < circles.size(); i++) {
-    colors[i] = palette[(int)random(0, 4)];
+    colors[i] = palette[(int)random(0, palette.length)];
   }
 }
 
@@ -239,18 +238,9 @@ void mouseWheel(MouseEvent event) {
 }
 
 void setLights() {
-  ambientLight(128, 128, 128);
-  lightFalloff(1, 0, 0);
-  lightSpecular(0, 0, 0);
-  shininess(10.0);
-
-  // Put directional light in front and behind
-  directionalLight(200, 200, 200, 0, 0, -100);
-  directionalLight(200, 200, 200, 0, 0, 100);
-
-  // Put point light in front and on top
-  pointLight(200, 200, 200, 0, 1, -100);
-  pointLight(200, 200, 200, 0, 0, -100);
+  ambientLight(100, 100, 100);
+  directionalLight(120, 120, 120, 0, 0, -1); // light behind
+  directionalLight(120, 120, 120, 0, 0, 1); // light infront
 }
 
 void draw() {
@@ -261,12 +251,14 @@ void draw() {
   camera.updateRotation();
   camera.set();
 
-  // Draw the gasket (ignoring the outer "container" circle)
+  // Draw the gasket circles (ignoring the outer "container" circle)
   for (int i = 1; i < circles.size(); i++) {
     Circle circle = circles.get(i);
     pushMatrix();
     translate(circle.center.real, circle.center.imaginary, 0);
     fill(colors[i]);
+    specular(255, 255, 255);
+    shininess(50);
     sphere(circle.radius);
     popMatrix();
   }
