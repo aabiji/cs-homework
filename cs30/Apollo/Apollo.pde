@@ -6,6 +6,13 @@ December 10, 2024
 
 A program to visualize an Apollonian gasket in 3d.
 
+TODO: fix lightling ask question about extending to 3d and done!
+
+Ressources:
+- https://www.youtube.com/watch?v=6UlGLB_jiCs
+- https://en.wikipedia.org/wiki/Descartes%27_theorem
+- https://www.wikihow.com/Create-an-Apollonian-Gasket
+
 Production rules:
 1. Start with three circles that are tangent to each other
 2. Calculate the radii and positions of new circles that are tangent to all three
@@ -146,7 +153,7 @@ Circle[] getInitialCircles() {
 
   // Random circle radii
   float r1 = random(100, 400);
-  float r2 = random(20, r1 / 5);
+  float r2 = random(20, r1 / 2);
   float r3 = r1 - r2;
 
   // Random unit vector
@@ -204,6 +211,7 @@ class Camera {
 
 Camera camera;
 ArrayList<Circle> circles;
+color[] colors;
 
 void setup() {
   size(600, 600, P3D);
@@ -214,6 +222,16 @@ void setup() {
   Circle[] set = getInitialCircles();
   java.util.Collections.addAll(circles, set);
   generateGasket(circles, set[0], set[1], set[2], 10);
+
+  // Assign each circle it's own color
+  color[] palette = {
+    color(252, 239, 239), color(127, 216, 190),
+    color(161, 252, 223),color(252, 210, 159)
+  };
+  colors = new color[circles.size()];
+  for (int i = 0; i < circles.size(); i++) {
+    colors[i] = palette[(int)random(0, 4)];
+  }
 }
 
 void mouseWheel(MouseEvent event) {
@@ -221,17 +239,18 @@ void mouseWheel(MouseEvent event) {
 }
 
 void setLights() {
-  ambientLight(222, 217, 226);
+  ambientLight(128, 128, 128);
   lightFalloff(1, 0, 0);
   lightSpecular(0, 0, 0);
+  shininess(10.0);
 
   // Put directional light in front and behind
-  directionalLight(200, 200, 200, 0, 0, -1);
-  directionalLight(200, 200, 200, 0, 0, 1);
+  directionalLight(200, 200, 200, 0, 0, -100);
+  directionalLight(200, 200, 200, 0, 0, 100);
 
   // Put point light in front and on top
-  pointLight(255, 255, 255, 0, 1, -1);
-  pointLight(255, 255, 255, 0, 0, -1);
+  pointLight(200, 200, 200, 0, 1, -100);
+  pointLight(200, 200, 200, 0, 0, -100);
 }
 
 void draw() {
@@ -245,11 +264,9 @@ void draw() {
   // Draw the gasket (ignoring the outer "container" circle)
   for (int i = 1; i < circles.size(); i++) {
     Circle circle = circles.get(i);
-    color c = i == 0 ? color(0, 0, 0) : color(255, 0, 0);
-
     pushMatrix();
     translate(circle.center.real, circle.center.imaginary, 0);
-    fill(c);
+    fill(colors[i]);
     sphere(circle.radius);
     popMatrix();
   }
