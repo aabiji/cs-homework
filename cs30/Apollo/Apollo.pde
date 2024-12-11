@@ -20,6 +20,7 @@ Production rules:
 
 import java.util.ArrayList;
 
+// Basic complex number implementation
 class Complex {
   float real;
   float imaginary;
@@ -150,8 +151,8 @@ Circle[] getInitialCircles() {
   Circle[] circles = new Circle[3];
 
   // Random circle radii
-  int r1 = (int)random(100, 400);
-  int r2 = (int)random(r1/2 - 10, r1/2+1);
+  int r1 = (int)random(100, 300);
+  int r2 = (int)random(r1/3, r1/2);
   int r3 = r1 - r2;
 
   // Random unit vector
@@ -161,12 +162,12 @@ Circle[] getInitialCircles() {
   circles[0] = new Circle(new Complex(0, 0), -1.0 / r1);
 
   // Position the first inner circle at a random position inside the circle
-  vector.setMag(r1 - r2);
+  vector.setMag(r3);
   circles[1] = new Circle(new Complex(vector.x, vector.y), 1.0 / r2);
 
   // Position the second inner circle by mirroring the first
   vector.rotate(PI);
-  vector.setMag(r1 - r3);
+  vector.setMag(r2);
   circles[2] = new Circle(new Complex(vector.x, vector.y), 1.0 / r3);
 
   return circles;
@@ -211,43 +212,47 @@ Camera camera;
 ArrayList<Circle> circles;
 color[] colors;
 
-void setup() {
-  size(600, 600, P3D);
+void newFractal() {
+  int depth = (int)random(8, 10);
 
-  camera = new Camera();
-
-  // Only generate a developped gasket
-  do {
-    int depth = (int)random(5, 10);
-    circles = new ArrayList<Circle>();
-    Circle[] set = getInitialCircles();
-    java.util.Collections.addAll(circles, set);
-    generateGasket(circles, set[0], set[1], set[2], depth);
-  } while (circles.size() == 3);
+  circles.clear();
+  Circle[] set = getInitialCircles();
+  java.util.Collections.addAll(circles, set);
+  generateGasket(circles, set[0], set[1], set[2], depth);
 
   // Assign each circle it's own color
-  color[] palette = { color(251, 254, 249), color(12, 98, 145), color(166, 52, 70) };
+  color[] palette = { color(222, 26, 26), color(242, 211, 152), color(172, 190, 216) };
   colors = new color[circles.size()];
   for (int i = 0; i < circles.size(); i++) {
     colors[i] = palette[(int)random(0, palette.length)];
   }
 }
 
+void setup() {
+  size(600, 600, P3D);
+
+  camera = new Camera();
+  circles = new ArrayList<Circle>();
+  newFractal();
+}
+
 void mouseWheel(MouseEvent event) {
   camera.zoom(event.getCount());
 }
 
-void setLights() {
-  ambientLight(100, 100, 100);
-  directionalLight(120, 120, 120, 0, 0, -1); // light behind
-  directionalLight(120, 120, 120, 0, 0, 1); // light infront
+void keyReleased() {
+  newFractal();
 }
 
 void draw() {
   background(0);
   noStroke();
 
-  setLights();
+  // Add some lights in front and behind the circles
+  ambientLight(128, 128, 128);
+  directionalLight(164, 176, 223, 0, 0, -1);
+  directionalLight(164, 176, 223, 0, 0, 1);
+
   camera.updateRotation();
   camera.set();
 
@@ -257,8 +262,6 @@ void draw() {
     pushMatrix();
     translate(circle.center.real, circle.center.imaginary, 0);
     fill(colors[i]);
-    specular(255, 255, 255);
-    shininess(50);
     sphere(circle.radius);
     popMatrix();
   }
