@@ -32,21 +32,23 @@ class Chain {
 
     void update(int xSpeed) {
         float startX = circles[0].pos.x;
-        PVector initial = new PVector(startX - 10, sin(startX) * 10);
+        PVector initial = new PVector(startX - 1, sin(startX) * 10);
+
+        for (Circle c : circles)
+            c.pos.x += xSpeed;
 
         // Move and draw each piece of the chain
         // Make the chain move around using the mouse
         for (int i = 0; i < circles.length; i++) {
             Circle c = circles[i];
             circles[i].moveTo(i == 0 ? initial : circles[i - 1].pos);
-            c.pos.x += xSpeed;
             circle(c.pos.x, c.pos.y, c.radius * 2);
         }
     }
 }
 
-Chain chain = new Chain();
-Pinniped p = new Pinniped(100);
+//Chain chain = new Chain();
+LeopardSeal seal = new LeopardSeal(100);
 
 void setup() {
     size(600, 600);
@@ -54,6 +56,6 @@ void setup() {
 
 void draw() {
     background(255);
-    p.move();
-    p.display();
+    seal.move();
+    seal.display();
 }
