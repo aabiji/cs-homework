@@ -1,73 +1,94 @@
-//import processing.sound.SoundFile;
+import processing.sound.SoundFile;
 
-enum SwimState { Idle, Ascending, Descending };
+boolean isNight = false;
+int previousMinute = -1;
 
 public class Pinniped extends AnimatedObject {
-    int preferedDepth; // in meters
-    float oxygenLevel;
+  int preferedDepth;
+  float oxygenLevel;
 
-    int xDirection;
-    PVector velocity;
+  PVector velocity;
+  int xDirection;
+  int surfaceY;
 
-    SwimState state;
-    //SoundFile growlSound;
+  SoundFile growlSound;
 
-    Pinniped(float size) {
-        super();
-        this.size = size;
+  Pinniped(float size) {
+    super();
+    this.size = size;
 
+    x = (int)random(0, width - size);
+    xSpeed = ySpeed = 0;
+    xDirection = 1; // right
+    velocity = new PVector(0, 0);
+
+    oxygenLevel = 1;
+    surfaceY = 10;
+  }
+
+  void move() {
+    x += velocity.x * xDirection;
+    y += velocity.y;
+
+    // TODO: this should go into the background
+    if (previousMinute == -1) previousMinute = second();
+    int now = second();
+    int duration = now - previousMinute;
+    if (duration == 15) {
+      isNight = !isNight;
+      previousMinute = now;
+    }
+
+    if(x >= width || x <= 0)
+    {
+      xDirection *= -1;
+    }
+  }
+  
+  void growl() {
+    growlSound.play(); 
+  }
+
+  void sleep() {
+    if (y > surfaceY) {
+      velocity.y = -ySpeed;
+    } else {
+      velocity.x = 0;
+      velocity.y = 0;
+    }
+  }
+
+  void display() {
+    rect(x, y, 20, 20);
+  }
+
+  void swim() 
+  {
+    if (isNight) {
+      sleep();
+      return;
+    }
+
+    velocity.x = xSpeed;
+    if(oxygenLevel <= 0)
+    {
+      velocity.y = -ySpeed;
+      println("i need o2");
+      if(y <= surfaceY)
+      {
         oxygenLevel = 1;
-        state = SwimState.Idle;
-        preferedDepth = height / 2;
-
-        x = (int)random(0, width);
-        y = preferedDepth;
-        xDirection = 1; // right
-
-        xSpeed = 0;
-        ySpeed = 0;
-        velocity = new PVector(0, 0);
-        //growlSound = null;
+      }
     }
-
-    // Methods defined by the child class
-    void display() {}
-    void defineMovement() {}
-
-    void move() {
-        defineMovement();
-
-        y += velocity.y;
-        x += velocity.x * xDirection;
-        oxygenLevel -= 0.001;
-
-        // Bounce of side walls
-        if (x < 0 || x + size > width) {
-            xDirection *= -1;
-            x = max(0, min(x, width - size));
-        }
+    else if(oxygenLevel > 0 && y <= preferedDepth)
+    {
+      velocity.y = ySpeed;
     }
-
-    void sleep() {} // TODO!
-
-    // Cycle between the possible swim states
-    void setSwimState() {
-        if (state == SwimState.Idle && oxygenLevel < 0) {
-            state = SwimState.Ascending;
-            velocity.x = xSpeed * -1;
-            velocity.y = 0;
-        }
-
-        if (state == SwimState.Ascending && y < 0) {
-            state = SwimState.Descending;
-            velocity.x = xSpeed;
-            velocity.y = 0;
-        }
-
-        if (state == SwimState.Descending && y >= preferedDepth) {
-            state = SwimState.Idle;
-            y = preferedDepth;
-            oxygenLevel = random(0.5, 1.0);
-        }
+    else
+    {
+      velocity.y = sin(x) * ySpeed;
     }
+    oxygenLevel -= 0.01;
+    
+    println(oxygenLevel);
+  }
 }
