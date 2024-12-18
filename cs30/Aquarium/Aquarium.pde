@@ -1,62 +1,73 @@
-/*
-class Circle {
-    int radius;
-    PVector pos;
 
-    Circle(int radius, PVector position) {
-        this.radius = radius;
-        this.pos = position;
-    }
+int clock = 0;
+boolean nightime = false;
 
-    void moveTo(PVector target) {
-        float angle = atan2(target.y - pos.y, target.x - pos.x);
-        if (degrees(angle) > 270) angle = radians(270);
-        float d = sqrt(pow(target.x - pos.x, 2) + pow(target.y - pos.y, 2)); // euclidean distance
-        float gap = d - radius;
-        if (gap < 0) return;
-        pos.x += gap * cos(angle);
-        pos.y += gap * sin(angle);
+// Cycle between daytime and nightime then notify all pinnipeds
+void cycleDayNight() {
+  if (++clock < 100) return; // Each day is 4000 ticks long
+  clock = 0;
+  nightime = !nightime;
+  for (AnimatedObject obj : objs) {
+    if (obj instanceof Pinniped) {
+      Pinniped cast = (Pinniped) obj;
+      cast.nightime = nightime;
     }
+  }
 }
 
-class Chain {
-    Circle[] circles;
-
-    Chain() {
-        int[] sizes = {5, 5, 10, 15, 15, 15, 15, 15};
-        circles = new Circle[sizes.length];
-        for (int i = 0; i < circles.length; i++) {
-            circles[i] = new Circle(sizes[i], new PVector(i * sizes[i], 300));
-        }
-    }
-
-    void update(int xSpeed) {
-        float startX = circles[0].pos.x;
-        PVector initial = new PVector(startX - 1, sin(startX) * 10);
-
-        for (Circle c : circles)
-            c.pos.x += xSpeed;
-
-        // Move and draw each piece of the chain
-        // Make the chain move around using the mouse
-        for (int i = 0; i < circles.length; i++) {
-            Circle c = circles[i];
-            circles[i].moveTo(i == 0 ? initial : circles[i - 1].pos);
-            circle(c.pos.x, c.pos.y, c.radius * 2);
-        }
-    }
+void drawTankBackground() {
+  cycleDayNight();
 }
-*/
-LeopardSeal seal;
 
+/** The array of objects */
+AnimatedObject[] objs = new AnimatedObject[1];
+
+/** Constant for the sandHeight */
+int SAND_HEIGHT = 40;
+
+/** Setup the sketch */
 void setup() {
-    size(600, 600);
+  size(800,600);
+  smooth();
 
-    seal = new LeopardSeal(20);
+  // initialize all the objects
+  for (int i=0; i < objs.length; i++) {
+    objs[i] = new LeopardSeal(random(30,50));
+  }
 }
 
+/** The main draw loop */
 void draw() {
-    background(255);
-    seal.move();
-    seal.display();
+
+  // draw the tank background
+  background(50,50,255);
+
+  // draw the sandy bottom of the tank
+  fill(168,168,50);
+  rect(0,height-SAND_HEIGHT, width, SAND_HEIGHT);
+
+  // draw the enhanced tank background, this is mandatory
+  drawTankBackground();
+
+  // draw and animate each of the objects
+  for (int i=0; i<objs.length; i++) {
+    objs[i].display(objs);
+    objs[i].move();
+  }
+}
+
+void mousePressed()
+{
+  // draw and animate each of the objects
+  for (int i=0; i<objs.length; i++) {
+    objs[i].mouseWasPressed();
+  }
+}
+
+void keyPressed()
+{
+  // draw and animate each of the objects
+  for (int i=0; i<objs.length; i++) {
+    objs[i].keyWasPressed();
+  }
 }
