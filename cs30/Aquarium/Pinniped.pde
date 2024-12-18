@@ -16,7 +16,7 @@ public class Pinniped extends AnimatedObject {
   Pinniped(float size) {
     super();
     this.size = size;
-    surfaceY = 10;
+    surfaceY = 100;
     sineCount = 0;
     hasAscended = false;
     nightime = false;

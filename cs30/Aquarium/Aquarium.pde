@@ -4,7 +4,7 @@ boolean nightime = false;
 
 // Cycle between daytime and nightime then notify all pinnipeds
 void cycleDayNight() {
-  if (++clock < 100) return; // Each day is 4000 ticks long
+  if (++clock < 2000) return; // Each day is 4000 ticks long
   clock = 0;
   nightime = !nightime;
   for (AnimatedObject obj : objs) {
@@ -15,8 +15,74 @@ void cycleDayNight() {
   }
 }
 
+void drawVerticalGradient(int startY, int endY, color start, color end) {
+  int h = endY - startY;
+  for (float i = 0; i < 1.0; i += 0.01) {
+    noStroke();
+    fill(lerpColor(start, end, i));
+    rect(0, startY + i * h, width, h * 0.01);
+  }
+}
+
+// ToDO; animate this
+void drawSurface() {
+  // draw the sky
+  fill(nightime ? color(10, 10, 10) : color(172, 229, 238));
+  rect(0, 0, width, 100);
+  // draw the moon/sun
+  fill(nightime ? color(200, 200, 200) : color(255, 255, 51));
+  circle(width - 100, 50, 50);
+}
+
+// TODO: make this less awful
+// Determine the vertices for seaweed strewn accross the seafloor
+ArrayList<PVector> createSeaweed(int x) {
+  int h = 50; // segment height
+  int numSegments = (int)random(3, 8);
+  int y = height - SAND_HEIGHT - numSegments * h;
+  ArrayList<PVector> vertices = new ArrayList<PVector>();
+
+  // base
+  vertices.add(new PVector(x, y));
+  vertices.add(new PVector(x, y));
+
+  // body segments
+  for (int j = 0; j < numSegments; j++) {
+    vertices.add(new PVector(x + random(-20, 20), y + (j+1) * h));
+  }
+
+  // tip
+  vertices.add(new PVector(x + random(-20, 20), y + numSegments * h));
+  vertices.add(new PVector(x + random(-20, 20), y + numSegments * h));
+
+  return vertices;
+}
+
+ArrayList<PVector>[] seaweeds;
+void createVegetation() {
+  seaweeds = new ArrayList[15];
+  for (int i = 0; i < seaweeds.length; i++) {
+    seaweeds[i] = createSeaweed(50 + i * 50);
+  }
+}
+
 void drawTankBackground() {
   cycleDayNight();
+  drawVerticalGradient(100, height - SAND_HEIGHT, color(132, 188, 243), color(6, 29, 149));
+  drawSurface();
+
+  if (seaweeds == null || clock % 100 == 0) {
+    createVegetation(); // TODO: make the seaweeds actually move in a dynamic way
+  } else {
+    fill(0, 100, 0);
+    for (ArrayList<PVector> vertices : seaweeds) {
+      beginShape();
+      for (PVector v : vertices) {
+        curveVertex(v.x, v.y);
+      }
+      endShape();
+    }
+  }
 }
 
 /** The array of objects */
