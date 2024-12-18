@@ -29,10 +29,20 @@ public class Pinniped extends AnimatedObject {
   //}
 
   void sleep() {
+    // Descend from the surface after sleeping
+    if (!nightime && hasAscended) {
+      y += ySpeed;
+      if (y >= preferedDepth)
+        hasAscended = false;
+      return;
+    }
+
     if (y > surfaceY) {
       y -= ySpeed; // Move to the surface
+    } else {
+      hasAscended = true;
+      // Then do nothing and stay stationary
     }
-    // The else in this case is to just do nothing and stay stationary
   }
 
   void surfaceForAir() {
@@ -63,7 +73,8 @@ public class Pinniped extends AnimatedObject {
 
   void move() {
     oxygenLevel -= nightime ? 0 : 0.001;
-    if (nightime)
+    boolean descendingFromSleep = oxygenLevel > 0 && hasAscended;
+    if (nightime || descendingFromSleep)
       sleep();
     else if (oxygenLevel < 0)
       surfaceForAir();

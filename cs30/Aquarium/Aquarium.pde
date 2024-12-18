@@ -4,7 +4,7 @@ boolean nightime = false;
 
 // Cycle between daytime and nightime then notify all pinnipeds
 void cycleDayNight() {
-  if (++clock < 2000) return; // Each day is 4000 ticks long
+  if (++clock < 1000) return; // Each day is 4000 ticks long
   clock = 0;
   nightime = !nightime;
   for (AnimatedObject obj : objs) {
