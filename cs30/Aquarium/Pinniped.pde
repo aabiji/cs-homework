@@ -1,94 +1,95 @@
-import processing.sound.SoundFile;
+//import processing.sound.SoundFile;
 
 boolean isNight = false;
-int previousMinute = -1;
 
 public class Pinniped extends AnimatedObject {
-  int preferedDepth;
   float oxygenLevel;
+  float oxygenCapacity;
+  int preferedDepth;
+  //SoundFile growlSound;
 
-  PVector velocity;
-  int xDirection;
-  int surfaceY;
+  private int surfaceY;
+  private boolean hasAscended;
+  private float sinCount;
+  private int xDirection;
 
-  SoundFile growlSound;
+  int clock;
 
   Pinniped(float size) {
     super();
     this.size = size;
 
-    x = (int)random(0, width - size);
-    xSpeed = ySpeed = 0;
-    xDirection = 1; // right
-    velocity = new PVector(0, 0);
-
-    oxygenLevel = 1;
     surfaceY = 10;
+    hasAscended = false;
+    sinCount = 0;
+    xDirection = 1; // going right
+    x = (int)random(0, width - size);
+
+    clock = 0;
+
+    // These should be set by child classes
+    y = 0;
+    xSpeed = 0;
+    ySpeed = 0;
+    preferedDepth = 0;
+    //growlSound = null;
+    oxygenLevel = 0;
+    oxygenCapacity = 0;
+  }
+
+  //void growl() {
+  //  growlSound.play();
+  //}
+
+  // Go to the surface then stay stationary
+  void sleep() {
+    if (y > surfaceY) {
+      y -= ySpeed;
+    }
+    // The else in this case is to just do nothing and stay stationary
+  }
+
+  void surfaceForAir() {
+    if (y > surfaceY && !hasAscended)
+      y -= ySpeed; // Ascend
+    else { // Descend
+      hasAscended = true;
+      y += ySpeed;
+    }
+
+    if (y > preferedDepth && hasAscended) {
+      oxygenLevel = oxygenCapacity;
+      hasAscended = false;
+    }
+  }
+
+  // Move the animal in an osciallating fashion
+  void swim() {
+    x += xSpeed * xDirection;
+    if (x >= width - size || x <= 0) {
+      xDirection *= -1; // Bounce off side walls
+    }
+
+    sinCount = sinCount + 0.05;
+    y = preferedDepth + sin(sinCount) * 50;
+    y = max(0, y);
   }
 
   void move() {
-    x += velocity.x * xDirection;
-    y += velocity.y;
+    oxygenLevel -= isNight ? 0 : 0.001;
+    if (isNight)
+      sleep();
+    else if (oxygenLevel < 0)
+      surfaceForAir();
+    else
+      swim();
 
     // TODO: this should go into the background
-    if (previousMinute == -1) previousMinute = second();
-    int now = second();
-    int duration = now - previousMinute;
-    if (duration == 15) {
+    clock ++;
+    println(clock);
+    if (clock == 2000) {
       isNight = !isNight;
-      previousMinute = now;
+      clock = 0;
     }
-
-    if(x >= width || x <= 0)
-    {
-      xDirection *= -1;
-    }
-  }
-  
-  void growl() {
-    growlSound.play(); 
-  }
-
-  void sleep() {
-    if (y > surfaceY) {
-      velocity.y = -ySpeed;
-    } else {
-      velocity.x = 0;
-      velocity.y = 0;
-    }
-  }
-
-  void display() {
-    rect(x, y, 20, 20);
-  }
-
-  void swim() 
-  {
-    if (isNight) {
-      sleep();
-      return;
-    }
-
-    velocity.x = xSpeed;
-    if(oxygenLevel <= 0)
-    {
-      velocity.y = -ySpeed;
-      println("i need o2");
-      if(y <= surfaceY)
-      {
-        oxygenLevel = 1;
-      }
-    }
-    else if(oxygenLevel > 0 && y <= preferedDepth)
-    {
-      velocity.y = ySpeed;
-    }
-    else
-    {
-      velocity.y = sin(x) * ySpeed;
-    }
-    oxygenLevel -= 0.01;
-    
-    println(oxygenLevel);
   }
 }

@@ -1,4 +1,4 @@
-
+/*
 class Circle {
     int radius;
     PVector pos;
@@ -46,12 +46,13 @@ class Chain {
         }
     }
 }
-
-//Chain chain = new Chain();
-LeopardSeal seal = new LeopardSeal(100);
+*/
+LeopardSeal seal;
 
 void setup() {
     size(600, 600);
+
+    seal = new LeopardSeal(20);
 }
 
 void draw() {
