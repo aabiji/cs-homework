@@ -1,4 +1,3 @@
-import processing.sound.SoundFile;
 
 public class StellarSeaLion extends Pinniped {
   StellarSeaLion(float size) {
@@ -10,11 +9,8 @@ public class StellarSeaLion extends Pinniped {
     oxygenLevel = oxygenCapacity = 1.6;
   }
 
-  void display(AnimatedObject objs[]) {
-    if (super.isClose(objs)) {
-      growlSound.play();
-      xDirection *= -1;
-    }
+  void display(AnimatedObject[] objects) {
+    super.react(objects);
     fill(143, 26, 163);
     rect(x, y, size, size);
   }

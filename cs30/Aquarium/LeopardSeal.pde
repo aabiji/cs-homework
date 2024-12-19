@@ -1,19 +1,17 @@
-//import processing.sound.SoundFile;
 
 public class LeopardSeal extends Pinniped {
-  //SoundFile growlSound;
-
   LeopardSeal(float size) {
     super(size);
 
-    xSpeed = 1;
-    ySpeed = 5;
-    y = preferedDepth = 300;
-    oxygenLevel = oxygenCapacity = 1.0;
-    //growlSound = null;
+    xSpeed = 4;
+    ySpeed = 4;
+    y = preferedDepth = 200;
+    oxygenLevel = oxygenCapacity = 2.5;
   }
 
-  void display() {
+ void display(AnimatedObject[] objects) {
+    super.react(objects);
+    fill(242, 238, 10);
     rect(x, y, size, size);
   }
 }

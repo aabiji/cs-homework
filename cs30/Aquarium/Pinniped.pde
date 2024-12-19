@@ -7,10 +7,10 @@ public class Pinniped extends AnimatedObject {
   int preferedDepth;
   //SoundFile growlSound;
 
+  private int xDirection;
   private int surfaceY;
   private boolean hasAscended;
   private float sineCount;
-  private int xDirection;
   private boolean nightime;
 
   Pinniped(float size) {
@@ -24,9 +24,29 @@ public class Pinniped extends AnimatedObject {
     x = (int)random(0, width - size);
   }
 
-  //void growl() {
-  //  growlSound.play();
-  //}
+  void mouseWasPressed() {
+    if (mouseX > x && mouseX < x + size && mouseY > y && mouseY < y + size)
+      xDirection *= -1; // Change direction on click
+  }
+
+  boolean nearOtherPinniped(AnimatedObject[] objs) {
+    for (AnimatedObject obj : objs) {
+      if (obj instanceof Pinniped) {
+        Pinniped cast = (Pinniped) obj;
+        if (cast.x == x || cast.y == y) continue; // skip ourselves
+        float distance = sqrt(pow(cast.x - x, 2) + pow(cast.y - y, 2)); // euclidean distance
+        if (distance <= 50) return true;
+      }
+    }
+    return false;
+  }
+
+  // React to neaby pinnipeds
+  void react(AnimatedObject[] objects) {
+    if (!nearOtherPinniped(objects)) return;
+    //growlSound.play();
+    xDirection *= -1;
+  }
 
   void sleep() {
     // Descend from the surface after sleeping
