@@ -7,7 +7,7 @@ public class Pinniped extends AnimatedObject {
   int preferedDepth;
   //SoundFile growlSound;
 
-  private int xDirection;
+  int xDirection;
   private int surfaceY;
   private boolean hasAscended;
   private float sineCount;
@@ -45,7 +45,6 @@ public class Pinniped extends AnimatedObject {
   void react(AnimatedObject[] objects) {
     if (!nearOtherPinniped(objects)) return;
     //growlSound.play();
-    xDirection *= -1;
   }
 
   void sleep() {

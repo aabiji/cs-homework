@@ -56,7 +56,7 @@ class Background {
 
   Background() {
     clock = 0;
-    halfDay = 1000;
+    halfDay = 2000;
     nightime = false;
     forest = new Seaweed[40];
     for (int i = 0; i < forest.length; i++) {

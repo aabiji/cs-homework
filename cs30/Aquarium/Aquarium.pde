@@ -23,8 +23,8 @@ void setup() {
   };*/
 
   objs[0] = new BeardedSeal(20);
-  objs[1] = new LeopardSeal(20);
-  objs[2] = new PacificWalrus(20);
+  objs[1] = new LeopardSeal(75);
+  objs[2] = new PacificWalrus(75);
   objs[3] = new StellarSeaLion(20);
 
   /*for (int i = 0; i < objs.length; i++) {
