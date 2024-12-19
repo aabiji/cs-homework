@@ -15,22 +15,22 @@ void setup() {
   size(800,600);
   smooth();
 
-  /*SoundFile[] sounds = {
+  SoundFile[] sounds = {
     new SoundFile(this, "BeardedSeal.mp3"),
     new SoundFile(this, "LeopardSeal.mp3"),
     new SoundFile(this, "Walrus.mp3"),
     new SoundFile(this, "SeaLion.mp3")
-  };*/
+  };
 
   objs[0] = new BeardedSeal(20);
   objs[1] = new LeopardSeal(75);
   objs[2] = new PacificWalrus(75);
   objs[3] = new StellarSeaLion(20);
 
-  /*for (int i = 0; i < objs.length; i++) {
+  for (int i = 0; i < objs.length; i++) {
     Pinniped cast = (Pinniped) objs[i];
     cast.growlSound = sounds[i];
-  }*/
+  }
 }
 
 /** The main draw loop */
