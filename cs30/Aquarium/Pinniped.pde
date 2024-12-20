@@ -1,11 +1,11 @@
-//import processing.sound.SoundFile;
+import processing.sound.SoundFile;
 
 public class Pinniped extends AnimatedObject {
   // Set by the child classes
   float oxygenLevel;
   float oxygenCapacity;
   int preferedDepth;
-  //SoundFile growlSound;
+  SoundFile growlSound;
 
   int xDirection;
   int flipCounter;
@@ -70,7 +70,7 @@ public class Pinniped extends AnimatedObject {
  // React to neaby pinnipeds
   void react(AnimatedObject[] objects) {
     if (!nearOtherPinniped(objects)) return;
-    //growlSound.play();
+    growlSound.play();
   }
 
   void sleep() {
