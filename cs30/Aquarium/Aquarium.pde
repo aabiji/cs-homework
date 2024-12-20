@@ -1,7 +1,44 @@
+/*
+Aquarium
+--------
+Annalise
+Abigail Adegbiji
+
+December 20, 2024
+
+Program that simulates an aquatic environment featuring pinnipeds
+like stellar sea lions, pacific walrus', leopard seals and bearded
+seals. Each pinniped has their own specific attributes, such as
+their oxygen capacity, prefered depth, speed and appearance. When
+they are in a certain distance of each other they react by growling
+and when its night time they come to the surface to sleep. Periodically
+they surface for air. The aquarium observes a day/night cycle and the
+ocean background is animated with seaweed.
+*/
+
 Background bg = new Background();
 
 void drawTankBackground() {
   bg.draw(objs);
+}
+
+void createAnimals() {
+  //SoundFile[] sounds = {
+  //  new SoundFile(this, "BeardedSeal.mp3"),
+  //  new SoundFile(this, "LeopardSeal.mp3"),
+  //  new SoundFile(this, "Walrus.mp3"),
+  //  new SoundFile(this, "SeaLion.mp3")
+  //};
+
+  objs[0] = new BeardedSeal(15);
+  objs[1] = new LeopardSeal(15);
+  objs[2] = new PacificWalrus(15);
+  objs[3] = new StellarSeaLion(15);
+
+  //for (int i = 0; i < objs.length; i++) {
+  //  Pinniped cast = (Pinniped) objs[i];
+  //  cast.growlSound = sounds[i];
+  //}
 }
 
 /** The array of objects */
@@ -14,23 +51,7 @@ int SAND_HEIGHT = 40;
 void setup() {
   size(800,600);
   smooth();
-
-  SoundFile[] sounds = {
-    new SoundFile(this, "BeardedSeal.mp3"),
-    new SoundFile(this, "LeopardSeal.mp3"),
-    new SoundFile(this, "Walrus.mp3"),
-    new SoundFile(this, "SeaLion.mp3")
-  };
-
-  objs[0] = new BeardedSeal(20);
-  objs[1] = new LeopardSeal(75);
-  objs[2] = new PacificWalrus(75);
-  objs[3] = new StellarSeaLion(20);
-
-  for (int i = 0; i < objs.length; i++) {
-    Pinniped cast = (Pinniped) objs[i];
-    cast.growlSound = sounds[i];
-  }
+  createAnimals();
 }
 
 /** The main draw loop */

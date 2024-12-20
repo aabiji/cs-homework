@@ -1,17 +1,20 @@
-import processing.sound.SoundFile;
+//import processing.sound.SoundFile;
 
 public class Pinniped extends AnimatedObject {
   // Set by the child classes
   float oxygenLevel;
   float oxygenCapacity;
   int preferedDepth;
-  SoundFile growlSound;
+  //SoundFile growlSound;
 
   int xDirection;
+  int flipCounter;
+  boolean flip;
+
   private int surfaceY;
   private boolean hasAscended;
   private float sineCount;
-  private boolean nightime;
+  boolean nightime;
 
   Pinniped(float size) {
     super();
@@ -20,8 +23,11 @@ public class Pinniped extends AnimatedObject {
     sineCount = 0;
     hasAscended = false;
     nightime = false;
-    xDirection = 1; // going right
     x = (int)random(0, width - size);
+
+    xDirection = 1; // going right
+    flipCounter = 0;
+    flip = false;
   }
 
   void mouseWasPressed() {
@@ -29,22 +35,42 @@ public class Pinniped extends AnimatedObject {
       xDirection *= -1; // Change direction on click
   }
 
-  boolean nearOtherPinniped(AnimatedObject[] objs) {
+  // Determine whether we should switch the animation frame
+  void updateFlip() {
+    if (flipCounter == 20) {
+      flip = !flip;
+      flipCounter = 0;
+    } else if (y > surfaceY) {
+      flipCounter++;
+    }
+  }
+
+  // Draw a custom shape from a list of vertices
+  void drawShape(float[] vertices) {
+    beginShape();
+    for (int i = 0; i < vertices.length - 2; i += 2) {
+      vertex(vertices[i], vertices[i + 1]);
+    }
+    endShape();
+  }
+
+  boolean nearOtherPinniped(AnimatedObject objs[]) {
     for (AnimatedObject obj : objs) {
       if (obj instanceof Pinniped) {
         Pinniped cast = (Pinniped) obj;
         if (cast.x == x || cast.y == y) continue; // skip ourselves
-        float distance = sqrt(pow(cast.x - x, 2) + pow(cast.y - y, 2)); // euclidean distance
-        if (distance <= 50) return true;
+        float distance = sqrt(pow(cast.x - x, 2) + pow(cast.y - y, 2));
+        if (distance < 80)
+          return true;
       }
     }
     return false;
   }
 
-  // React to neaby pinnipeds
+ // React to neaby pinnipeds
   void react(AnimatedObject[] objects) {
     if (!nearOtherPinniped(objects)) return;
-    growlSound.play();
+    //growlSound.play();
   }
 
   void sleep() {

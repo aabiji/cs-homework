@@ -2,45 +2,43 @@
 public class LeopardSeal extends Pinniped {
   LeopardSeal(float size) {
     super(size);
-
     xSpeed = 4;
     ySpeed = 4;
     y = preferedDepth = 200;
     oxygenLevel = oxygenCapacity = 2.5;
   }
 
-  // Draw an isoceles triangle
-  void drawTriangle(float x, float y, float base, float len, float angle) {
-    pushMatrix();
-    translate(x, y);
-    rotate(angle);
-    triangle(0, 0, 0, base, -len, base/ 2);
-    popMatrix();
-  }
-
- void display(AnimatedObject[] objects) {
+  void display(AnimatedObject[] objects) {
     super.react(objects);
+    super.updateFlip();
 
     noStroke();
     pushMatrix();
-    translate(size, 0); // since the ellipse xy is its center
+    translate(x, y);
+    rotate(radians(flip ? 355 : 5));
+    scale(xDirection * size, size);
 
-    // Flip layer to face left when needed
-    if (xDirection == -1) {
-      translate(2 * x, 0); // move everything into view
-      scale(-1, 1);
-    }
+    // Draw body (including the body, head and front and black flippers)
+    float[] vertices = {
+      0, 0, 3, -1.25, 6, -1.5, 7, -1.75, 8, -1,
+      7, 0.05, 6, 0, 5, 1, 4.75, 0.5, 4.5, 0,
+      4, 0.25, 0, 0, 0, -0.5, -0.25, -1, -0.5, -0.5,
+      0, 0, 0, 0.5, -0.25, 1, -0.5, 0.5, 0, 0
+    };
+    fill(148, 148, 148); // silver
+    super.drawShape(vertices);
 
-    fill(192,192,192); // silver
-    drawTriangle(x, y - size / 10, size / 4, size / 3, radians(-45)); // front flipper
+    // Draw the nose and side eye
+    fill(0, 0, 0); // black
+    rect(7.8, -1, 0.25, 0.25);
+    rect(7, -1.25, 0.4, 0.4);
 
-    // back flippers
-    drawTriangle(x - size / 2.6, y, size / 10, size / 10, radians(120));
-    drawTriangle(x - size / 2.6, y + size / 8, size / 10, size / 10, radians(120));
-
-    fill(169, 169, 169); // dark gray
-    ellipse(x, y, size, size / 4); // body
-    ellipse(x + size / 2, y, size / 4, size / 4); // head
+    // Draw freckles
+    fill(128, 128, 128); // grey
+    ellipse(3, -0.5, 0.9, 0.9);
+    ellipse(5, -0.75, 0.8, 0.8);
+    ellipse(6, -1, 0.3, 0.3);
+    ellipse(5, 0.5, 0.4, 0.4);
 
     popMatrix();
   }
